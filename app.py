@@ -19,55 +19,74 @@ if selection == "Chronic Disease Prediction":
     try:
         disease_model = pickle.load(open('chronic_disease_model.sav', 'rb'))
     except FileNotFoundError:
-        st.error("Error: 'chronic_disease_model.sav' file not found in repository!")
+        st.error("Error: 'chronic_disease_model.sav' file not found!")
 
-    # Creating Inputs in Columns for a better UI
-    col1, col2, col3 = st.columns(3)
+    # UI setup with 2 columns
+    col1, col2 = st.columns(2)
     
     with col1:
-        preg = st.number_input('Number of Pregnancies', min_value=0, step=1)
-        glucose = st.number_input('Glucose Level')
-        bp = st.number_input('Blood Pressure value')
+        age = st.number_input('Age', min_value=1, step=1, value=25)
+        bmi = st.number_input('BMI', value=22.0)
+        phys = st.number_input('Physical Activity (hours/week)', value=2.0)
+        sleep = st.number_input('Sleep Hours', value=7.0)
+        bp = st.number_input('Blood Pressure', value=80.0)
 
     with col2:
-        skin = st.number_input('Skin Thickness value')
-        insulin = st.number_input('Insulin Level')
-        bmi = st.number_input('BMI value')
+        chol = st.number_input('Cholesterol', value=150.0)
+        glucose = st.number_input('Glucose Level', value=90.0)
+        stress = st.number_input('Stress Level (1-10)', value=5.0)
+        gender = st.selectbox('Gender', ['Male', 'Female', 'Other'])
+        smoking = st.selectbox('Smoking Status', ['No', 'Yes'])
+        alcohol = st.selectbox('Alcohol Intake', ['Low', 'Moderate', 'High'])
+        diet = st.selectbox('Diet Quality', ['Good', 'Average', 'Poor'])
+        fam_hist = st.selectbox('Family History of Diabetes', ['No', 'Yes'])
 
-    with col3:
-        dpf = st.number_input('Diabetes Pedigree Function value')
-        age = st.number_input('Age of the Person', min_value=1, step=1)
-
-        # Prediction Logic
     if st.button("Predict Disease Status"):
-        # 1. User Inputs (Standard 8)
-        user_input = [preg, glucose, bp, skin, insulin, bmi, dpf, age]
+        # 1. Initialize all 21 features with 0.0
+        input_data = [0.0] * 21
         
-        # 2. Creating the 21 Features array
-        # Inga namma zeros create panrom, meedhi columns lifestyle habits-ah irukkum
-        final_features = [0.0] * 21
+        # 2. Map Numerical Features (Indices 0 to 7)
+        input_data[0] = float(age)
+        input_data[1] = float(bmi)
+        input_data[2] = float(phys)
+        input_data[3] = float(sleep)
+        input_data[4] = float(bp)
+        input_data[5] = float(chol)
+        input_data[6] = float(glucose)
+        input_data[7] = float(stress)
         
-        # 3. First 8 positions-la user values-ah fill panrom
-        for i in range(len(user_input)):
-            final_features[i] = user_input[i]
-            
-        # 4. Lifestyle Flags (Indexes 8 to 20)
-        # AlcoholIntake, Smoking, etc. columns-ah model expect pannum. 
-        # Abnormal case-ku namma 'Moderate' or 'High' lifestyle-ah simulation panna:
-        if glucose > 140:
-            final_features[10] = 1.0  # Oru 'High Risk' lifestyle column-ah trigger panrom
-            final_features[15] = 1.0  # Innoru risk flag
+        # 3. Map Categorical Features (One-Hot Encoding logic)
+        # Gender
+        if gender == 'Female': input_data[8] = 1.0
+        elif gender == 'Male': input_data[9] = 1.0
+        else: input_data[10] = 1.0
+        
+        # Smoking
+        if smoking == 'No': input_data[11] = 1.0
+        else: input_data[12] = 1.0
+        
+        # Alcohol
+        if alcohol == 'High': input_data[13] = 1.0
+        elif alcohol == 'Low': input_data[14] = 1.0
+        else: input_data[15] = 1.0
+        
+        # Diet
+        if diet == 'Average': input_data[16] = 1.0
+        elif diet == 'Good': input_data[17] = 1.0
+        else: input_data[18] = 1.0
+        
+        # Family History
+        if fam_hist == 'No': input_data[19] = 1.0
+        else: input_data[20] = 1.0
 
-        try:
-            prediction = disease_model.predict([final_features])
-            
-            if prediction[0] == 1:
-                st.warning("⚠️ High Risk: The person is likely to have Chronic Disease.")
-            else:
-                st.success("🎉 Low Risk: The person is Healthy.")
-        except Exception as e:
-            st.error(f"Feature Mismatch: {e}")
-            
+        # 4. Final Prediction
+        prediction = disease_model.predict([input_data])
+        
+        if prediction[0] == 1:
+            st.warning("⚠️ High Risk: The person is likely to have Chronic Disease.")
+        else:
+            st.success("🎉 Low Risk: The person is Healthy.")
+    
             
             
 # --- 2. Credit Card Fraud Detection Page ---
