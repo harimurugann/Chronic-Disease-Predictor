@@ -28,28 +28,27 @@ stress = st.slider("Stress Level (1-10)", 1, 10, 5)
 # Note: Ensure this mapping matches the LabelEncoder used in training
 mapping = {"No": 0, "Yes": 1, "Male": 1, "Female": 0, "Other": 2, "Low": 1, "Moderate": 2, "High": 0, "Poor": 2, "Average": 0, "Good": 1}
 
- if st.button("Predict"):
-    # 1. Create a simple list of features
+ # --- Mapping Dictionary (Check this is above the 'if' block) ---
+mapping = {"No": 0, "Yes": 1, "Male": 1, "Female": 0, "Other": 2, "Low": 1, "Moderate": 2, "High": 0, "Poor": 2, "Average": 1, "Good": 0}
+
+# --- Prediction Logic (Ensure NO extra spaces before 'if') ---
+if st.button("Predict"):
+    # 1. Collect inputs into a list
     feature_list = [
         age, mapping[gender], bmi, mapping[smoking], mapping[alcohol],
         activity, mapping[diet], sleep, bp, cholesterol, glucose,
         mapping[family_hist], stress
     ]
     
-    # 2. Convert to 2D array (model expects this)
+    # 2. Convert to 2D array
     features_array = np.array([feature_list])
     
-    # 3. Final Prediction (Single line only)
+    # 3. Model Prediction
     prediction = model.predict(features_array)
 
-    # 4. Display Result
+    # 4. Results
     if prediction[0] == 1:
-        st.error("Warning: The patient is likely to have a chronic disease.")
+        st.error("⚠️ Warning: The patient is likely to have a chronic disease.")
     else:
-        st.success("The patient is healthy.")
-    
-    
-    if prediction[0] == 1:
-        st.error("Warning: The patient is likely to have a chronic disease.")
-    else:
-        st.success("The patient is healthy.")
+        st.success("✅ The patient is healthy.")
+     
