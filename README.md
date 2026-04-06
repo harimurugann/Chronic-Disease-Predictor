@@ -1,5 +1,5 @@
 ## 🔗 Live Demo
-You can try the live app here: [🚀 Click to open Credit Card Fraud Detection App](https://smart-health-detector.streamlit.app/)
+You can try the live app here: [🚀 Click to open chronic-disease-predictor App](https://smart-health-detector.streamlit.app/)
 
 📌 Project Overview
 This project focuses on predicting chronic diseases based on patient health parameters. By leveraging Machine Learning algorithms, the system identifies potential health risks, enabling early intervention and better healthcare management.
