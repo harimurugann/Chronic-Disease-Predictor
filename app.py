@@ -71,16 +71,19 @@ if st.button("Analyze Health Status"):
     except:
         st.info("Feature importance data is loading...")
 
-    # 3. PERSONALIZED RECOMMENDATIONS
-    st.subheader("💡 Health Recommendations")
-    recs = []
-    if bmi > 25: recs.append("- **Weight:** Your BMI is high. Focus on a balanced diet and cardio.")
-    if glucose > 140: recs.append("- **Glucose:** High sugar levels. Reduce sweets and refined carbs.")
-    if bp > 130: recs.append("- **Blood Pressure:** High BP. Minimize salt and practice meditation.")
-    if activity < 3: recs.append("- **Activity:** Try to walk at least 30 minutes daily.")
-    
-    if not recs:
-        st.write("You are doing great! Keep up the healthy lifestyle.")
-    else:
-        for r in recs:
-            st.write(r)
+    for r in recs: 
+        st.write(r)
+
+    # --- PDF DOWNLOAD OPTION (Indha lines irukkanu paarunga) ---
+    st.markdown("---")
+    try:
+        # PDF create panni bytes-ah mathurom
+        pdf_bytes = create_pdf("Patient User", age, res_text, prob, recs)
+        
+        # Indha button dhan unga app-la kaatanum
+        st.download_button(label="📥 Download Health Report (PDF)",
+                           data=pdf_bytes,
+                           file_name="health_report.pdf",
+                           mime="application/pdf")
+    except Exception as e:
+        st.error(f"Error generating PDF: {e}")
