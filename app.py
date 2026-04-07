@@ -42,44 +42,45 @@ input_data = pd.DataFrame([[age, gender, bmi, smoking, alcohol, activity, diet, 
 st.markdown("---")
 
 if st.button("Analyze Health Status"):
-    # 1. Prediction & Probability
+    # 1. Prediction & Risk Probability
     prediction = pipeline.predict(input_data)[0]
-    # get_params() or accessing named steps to get probability if supported
     prob = pipeline.predict_proba(input_data)[0][1] * 100
 
-    # Display Result
     if prediction == 1:
         st.error(f"### Result: Chronic Disease Detected (Risk: {prob:.1f}%)")
     else:
         st.success(f"### Result: No Chronic Disease (Risk: {prob:.1f}%)")
 
-    # 2. FEATURE IMPORTANCE (New Feature)
+    # 2. FEATURE IMPORTANCE CHART
     st.subheader("📊 Key Factors Influencing Your Result")
-    # Getting feature importances from the RandomForest inside the pipeline
-    rf_model = pipeline.named_steps['classifier']
-    importances = rf_model.feature_importances_
-    
-    # Simple Bar Chart for Visual Appeal
-    importance_df = pd.DataFrame({'Feature': features, 'Importance': importances}).sort_values(by='Importance', ascending=False)
-    
-    fig, ax = plt.subplots(figsize=(10, 4))
-    sns.barplot(x='Importance', y='Feature', data=importance_df, palette='viridis', ax=ax)
-    plt.title("Importance of Each Health Metric", fontweight='bold')
-    st.pyplot(fig)
+    try:
+        rf_model = pipeline.named_steps['classifier']
+        preprocessor = pipeline.named_steps['preprocessor']
+        ohe_feature_names = preprocessor.get_feature_names_out()
+        importances = rf_model.feature_importances_
+        
+        importance_df = pd.DataFrame({
+            'Feature': ohe_feature_names, 
+            'Importance': importances
+        }).sort_values(by='Importance', ascending=False).head(10)
+        
+        fig, ax = plt.subplots(figsize=(10, 5))
+        sns.barplot(x='Importance', y='Feature', data=importance_df, palette='viridis', ax=ax)
+        plt.title("Top Factors in Prediction", fontweight='bold')
+        st.pyplot(fig)
+    except:
+        st.info("Feature importance data is loading...")
 
-    # 3. PERSONALIZED RECOMMENDATIONS (New Feature)
-    st.subheader("💡 Health Recommendations for You")
-    
+    # 3. PERSONALIZED RECOMMENDATIONS
+    st.subheader("💡 Health Recommendations")
     recs = []
-    if bmi > 25: recs.append("- **Weight Management:** Your BMI is slightly high. Consider a balanced diet and regular exercise.")
-    if glucose > 140: recs.append("- **Blood Sugar Control:** Your glucose levels are elevated. Reduce sugar intake and consult a doctor.")
-    if bp > 130: recs.append("- **BP Monitoring:** Your blood pressure is above normal. Reduce salt intake and practice relaxation.")
-    if smoking == "Yes": recs.append("- **Quit Smoking:** Smoking significantly increases chronic disease risk. Seek support to quit.")
-    if stress > 7: recs.append("- **Stress Relief:** High stress detected. Try meditation or yoga for mental well-being.")
-    if activity < 2: recs.append("- **Stay Active:** Increase your physical activity to at least 150 minutes per week.")
+    if bmi > 25: recs.append("- **Weight:** Your BMI is high. Focus on a balanced diet and cardio.")
+    if glucose > 140: recs.append("- **Glucose:** High sugar levels. Reduce sweets and refined carbs.")
+    if bp > 130: recs.append("- **Blood Pressure:** High BP. Minimize salt and practice meditation.")
+    if activity < 3: recs.append("- **Activity:** Try to walk at least 30 minutes daily.")
     
     if not recs:
-        st.write("Great job! Maintain your current healthy lifestyle.")
+        st.write("You are doing great! Keep up the healthy lifestyle.")
     else:
         for r in recs:
             st.write(r)
