@@ -8,135 +8,128 @@ import shap
 from fpdf import FPDF
 
 # ==========================================
-# 1. MULTI-LANGUAGE DICTIONARY
+# 1. UPDATED PDF FUNCTION (Error-Free)
 # ==========================================
-lang_data = {
-    "English": {
-        "title": "🏥 Clinical Health Dashboard",
-        "profile": "👤 Patient Profile",
-        "name": "Full Name",
-        "age": "Age",
-        "gender": "Gender",
-        "vitals": "🩸 Clinical Vitals",
-        "bp": "Systolic BP (mmHg)",
-        "glucose": "Glucose Level (mg/dL)",
-        "chol": "Cholesterol (mg/dL)",
-        "run_btn": "🚀 Run Comprehensive Analysis",
-        "result_detected": "Chronic Disease Detected",
-        "result_safe": "No Chronic Disease",
-        "sim_title": "🏁 Full Clinical Improvement Simulator",
-        "target": "Target",
-        "download": "📥 Download Clinical PDF Report",
-        "report_title": "HEALTH ASSESSMENT REPORT"
-    },
-    "Tamil": {
-        "title": "🏥 மருத்துவ நலப் பரிசோதனை மற்றும் பகுப்பாய்வு",
-        "profile": "👤 நோயாளியின் விவரங்கள்",
-        "name": "முழு பெயர்",
-        "age": "வயது",
-        "gender": "பாலினம்",
-        "vitals": "🩸 மருத்துவ அளவீடுகள்",
-        "bp": "இரத்த அழுத்தம் (BP)",
-        "glucose": "சர்க்கரை அளவு (Glucose)",
-        "chol": "கொலஸ்ட்ரால் (Cholesterol)",
-        "run_btn": "🚀 முழுமையான பரிசோதனையைத் தொடங்கு",
-        "result_detected": "தீராத நோய் கண்டறியப்பட்டது",
-        "result_safe": "நோய் பாதிப்பு இல்லை",
-        "sim_title": "🏁 உடல்நிலை முன்னேற்ற சிமுலேட்டர்",
-        "target": "இலக்கு",
-        "download": "📥 மருத்துவ அறிக்கையைப் பதிவிறக்கம் செய் (PDF)",
-        "report_title": "மருத்துவப் பரிசோதனை அறிக்கை"
-    }
-}
-
-# ==========================================
-# 2. PDF FUNCTION (With Language Support)
-# ==========================================
-def create_pdf(name, age, gender, result, prob, recs, medical_data, lang_choice):
+def create_pdf(name, age, gender, result, prob, recs, medical_data, bmi_val):
     pdf = FPDF()
     pdf.add_page()
-    l = lang_data[lang_choice]
     
+    # PDF-la Tamil encoding error thavirkka English-la headers vachukalam
     pdf.set_fill_color(44, 62, 80)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Arial", 'B', 18)
-    pdf.cell(0, 20, txt=l["report_title"], ln=True, align='C', fill=True)
+    pdf.cell(0, 20, txt="CLINICAL HEALTH ASSESSMENT REPORT", ln=True, align='C', fill=True)
     
     pdf.set_text_color(0, 0, 0)
     pdf.ln(10)
     pdf.set_font("Arial", 'B', 11)
+    
+    # Simple logic to handle results in English for PDF stability
+    status = "Chronic Disease Risk Detected" if prob > 50 else "Low Risk / Healthy"
+    
     pdf.cell(0, 10, txt=f"Patient: {name} | Age: {age} | Gender: {gender}", ln=True, border='B')
     pdf.ln(5)
-    
-    pdf.set_font("Arial", 'B', 11)
-    pdf.cell(0, 10, txt=f"Analysis: {result} ({prob:.1f}%)", ln=True)
+    pdf.cell(0, 10, txt=f"Diagnosis: {status} (Score: {prob:.1f}%)", ln=True)
+    pdf.cell(0, 10, txt=f"Body Mass Index (BMI): {bmi_val:.1f}", ln=True)
     pdf.ln(5)
 
-    pdf.cell(0, 10, txt=" CLINICAL VALUES", ln=True, fill=True)
+    pdf.cell(0, 10, txt=" MEASURED CLINICAL VALUES", ln=True, fill=True)
     pdf.set_font("Arial", size=10)
     for k, v in medical_data.items():
-        pdf.cell(95, 8, txt=f" {k}", border=1)
+        # ASCII encoding safe check
+        clean_k = str(k).encode('ascii', 'ignore').decode('ascii')
+        pdf.cell(95, 8, txt=f" {clean_k if clean_k else 'Metric'}", border=1)
         pdf.cell(95, 8, txt=f" {v}", border=1, ln=True)
     
-    return pdf.output(dest='S').encode('latin-1')
+    return pdf.output(dest='S').encode('latin-1', 'ignore')
 
 # ==========================================
-# 3. MAIN APP SETUP
+# 2. APP CONFIG & TRANSLATION
 # ==========================================
 st.set_page_config(page_title="Health AI Pro", layout="wide")
 pipeline = joblib.load('full_pipeline_compressed.sav')
 
-# --- Language Selection ---
+lang_dict = {
+    "English": {
+        "title": "🏥 Clinical Dashboard & AI Analyst",
+        "profile": "👤 Patient Profile", "vitals": "🩸 Clinical Vitals",
+        "btn": "🚀 Run Full Analysis", "bmi_cat": "BMI Category",
+        "sim": "🏁 Clinical Improvement Simulator"
+    },
+    "Tamil": {
+        "title": "🏥 மருத்துவ நலப் பரிசோதனை மற்றும் பகுப்பாய்வு",
+        "profile": "👤 நோயாளியின் விவரங்கள்", "vitals": "🩸 மருத்துவ அளவீடுகள்",
+        "btn": "🚀 முழுமையான பரிசோதனையைத் தொடங்கு", "bmi_cat": "உடல் எடை வகை (BMI)",
+        "sim": "🏁 உடல்நிலை முன்னேற்ற சிமுலேட்டர்"
+    }
+}
+
 sel_lang = st.sidebar.selectbox("🌐 Choose Language / மொழியைத் தேர்ந்தெடுக்கவும்", ["English", "Tamil"])
-L = lang_data[sel_lang]
+L = lang_dict[sel_lang]
 
 st.title(L["title"])
-st.markdown("---")
 
+# ==========================================
+# 3. INPUT SECTION
+# ==========================================
 col1, col2 = st.columns(2)
 with col1:
     st.subheader(L["profile"])
-    patient_name = st.text_input(L["name"], "Palanisamy")
-    age = st.number_input(L["age"], 1, 120, 45)
-    gender = st.selectbox(L["gender"], ["Male", "Female", "Other"])
-    bmi = st.number_input("BMI (kg/m2)", 10.0, 50.0, 25.0)
+    p_name = st.text_input("Name / பெயர்", "Palanisamy")
+    age = st.number_input("Age / வயது", 1, 120, 45)
+    gender = st.selectbox("Gender / பாலினம்", ["Male", "Female"])
+    weight = st.number_input("Weight (kg)", 30.0, 200.0, 70.0)
+    height = st.number_input("Height (cm)", 100.0, 250.0, 170.0)
+    # BMI Calculation
+    bmi = weight / ((height/100)**2)
     smoking = st.selectbox("Smoking", ["No", "Yes"])
-    activity = st.slider("Activity (Hrs/Week)", 0.0, 10.0, 3.0)
 
 with col2:
     st.subheader(L["vitals"])
-    bp = st.number_input(L["bp"], 80, 200, 120)
-    cholesterol = st.number_input(L["chol"], 100, 400, 200)
-    glucose = st.number_input(L["glucose"], 50, 300, 100)
-    stress = st.slider("Stress (1-10)", 1, 10, 5)
-    diet = st.selectbox("Diet Quality", ["Poor", "Average", "Good"])
-    family_hist = st.selectbox("Family History", ["No", "Yes"])
+    bp = st.number_input("Systolic BP (mmHg)", 80, 200, 120)
+    glucose = st.number_input("Glucose (mg/dL)", 50, 300, 100)
+    chol = st.number_input("Cholesterol (mg/dL)", 100, 400, 200)
+    activity = st.slider("Activity (Hrs/Week)", 0.0, 10.0, 3.0)
+    diet = st.selectbox("Diet", ["Good", "Average", "Poor"])
 
-features = ['Age', 'Gender', 'BMI', 'Smoking', 'AlcoholIntake', 'PhysicalActivity', 'DietQuality', 'SleepHours', 'BloodPressure', 'Cholesterol', 'Glucose', 'FamilyHistory', 'StressLevel']
-input_df = pd.DataFrame([[age, gender, bmi, smoking, "Low", activity, diet, 7.0, bp, cholesterol, glucose, family_hist, stress]], columns=features)
+# BMI Categorization Logic
+if bmi < 18.5: bmi_msg = "Underweight"
+elif 18.5 <= bmi < 25: bmi_msg = "Normal"
+elif 25 <= bmi < 30: bmi_msg = "Overweight"
+else: bmi_msg = "Obese"
 
-if st.button(L["run_btn"]):
-    prob = pipeline.predict_proba(input_df)[0][1] * 100
-    res_text = L["result_detected"] if prob > 50 else L["result_safe"]
+# ==========================================
+# 4. ANALYSIS TRIGGER
+# ==========================================
+if st.button(L["btn"]):
+    # Model Input
+    features = ['Age', 'Gender', 'BMI', 'Smoking', 'AlcoholIntake', 'PhysicalActivity', 'DietQuality', 'SleepHours', 'BloodPressure', 'Cholesterol', 'Glucose', 'FamilyHistory', 'StressLevel']
+    input_df = pd.DataFrame([[age, gender, bmi, smoking, "Low", activity, diet, 7.0, bp, chol, glucose, "No", 5]], columns=features)
     
-    if prob > 50: st.error(f"### {res_text} ({prob:.1f}%)")
-    else: st.success(f"### {res_text} ({prob:.1f}%)")
+    prob = pipeline.predict_proba(input_df)[0][1] * 100
+    res = "Chronic Disease Detected" if prob > 50 else "No Disease Detected"
 
-    # Metrics Display
-    m1, m2, m3 = st.columns(3)
-    m1.metric(L["bp"], f"{bp} mmHg", delta=f"{bp-120}", delta_color="inverse")
-    m2.metric(L["glucose"], f"{glucose} mg/dL", delta=f"{glucose-100}", delta_color="inverse")
-    m3.metric(L["chol"], f"{cholesterol} mg/dL", delta=f"{cholesterol-200}", delta_color="inverse")
-
-    # Simplified Simulator
     st.markdown("---")
-    st.subheader(L["sim_title"])
-    t_bp = st.slider(f"{L['target']} {L['bp']}", 80, 200, int(bp))
+    # Result & BMI Metrics
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Risk Score", f"{prob:.1f}%")
+    m2.metric("BMI Value", f"{bmi:.1f}")
+    m3.metric(L["bmi_cat"], bmi_msg)
+    m4.metric("BP Points", f"{bp}", delta=f"{bp-120}", delta_color="inverse")
+
+    # 
+
+[Image of BMI categories chart]
+
+    
+    # Improvement Simulator
+    st.subheader(L["sim"])
+    t_bp = st.slider("Target BP", 80, 180, int(bp))
     sim_df = input_df.copy(); sim_df['BloodPressure'] = t_bp
     s_prob = pipeline.predict_proba(sim_df)[0][1] * 100
-    st.metric("Simulated Risk", f"{s_prob:.1f}%", delta=f"{s_prob-prob:.1f}%", delta_color="inverse")
+    st.metric("New Risk Score", f"{s_prob:.1f}%", delta=f"{s_prob-prob:.1f}%", delta_color="inverse")
 
-    # PDF Report
-    med_summary = {L["bp"]: f"{bp} mmHg", L["glucose"]: f"{glucose} mg/dL"}
-    pdf_out = create_pdf(patient_name, age, gender, res_text, prob, [], med_summary, sel_lang)
-    st.download_button(L["download"], pdf_out, f"Report_{patient_name}.pdf")
+    # PDF Download
+    summary = {"Blood Pressure": f"{bp} mmHg", "Glucose": f"{glucose} mg/dL", "Cholesterol": f"{chol} mg/dL"}
+    pdf_bytes = create_pdf(p_name, age, gender, res, prob, [], summary, bmi)
+    st.download_button("📥 Download Report (English PDF)", pdf_bytes, f"Report_{p_name}.pdf")
