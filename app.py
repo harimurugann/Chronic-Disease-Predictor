@@ -8,25 +8,25 @@ import shap
 from fpdf import FPDF
 
 # ==========================================
-# 1. FIXED PDF FUNCTION (Error-Free)
+# 1. PROFESSIONAL PDF FUNCTION
 # ==========================================
-def create_pdf(name, age, gender, result, prob, medical_data):
+def create_pdf(name, age, gender, result, prob, score, medical_data):
     pdf = FPDF()
     pdf.add_page()
-    
-    # Header Section
     pdf.set_fill_color(44, 62, 80)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Arial", 'B', 20)
-    pdf.cell(0, 20, txt="CLINICAL ASSESSMENT REPORT", ln=True, align='C', fill=True)
+    pdf.cell(0, 20, txt="CHRONIC DISEASE ASSESSMENT REPORT", ln=True, align='C', fill=True)
     
-    # Patient Details
     pdf.set_text_color(0, 0, 0)
     pdf.ln(10)
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(0, 10, txt=f"Patient: {name if name else 'N/A'} | Age: {age} | Gender: {gender}", ln=True, border='B')
     
-    # Clinical Data Table
+    pdf.ln(5)
+    pdf.cell(0, 10, txt=f"Lifestyle Health Score: {score}/100", ln=True)
+    pdf.cell(0, 10, txt=f"Final Diagnosis: {result} (Risk: {prob:.1f}%)", ln=True)
+    
     pdf.ln(5)
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(0, 10, txt=" CLINICAL MEASUREMENTS", ln=True, fill=True)
@@ -35,32 +35,23 @@ def create_pdf(name, age, gender, result, prob, medical_data):
         pdf.cell(95, 8, f" {key}", border=1)
         pdf.cell(95, 8, f" {value}", border=1, ln=True)
     
-    pdf.ln(5)
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, txt=f"Final Diagnosis: {result} (Risk Score: {prob:.1f}%)", ln=True)
-    
-    # Logic to handle different FPDF versions output
     pdf_output = pdf.output(dest='S')
     if isinstance(pdf_output, str):
         return pdf_output.encode('latin-1')
     return pdf_output
 
 # ==========================================
-# 2. APP UI & INPUTS
+# 2. MAIN APP & INPUTS
 # ==========================================
 st.set_page_config(page_title="Professional AI Health", layout="wide")
-
-try:
-    pipeline = joblib.load('full_pipeline_compressed.sav')
-except:
-    st.error("Model file not found! Please check 'full_pipeline_compressed.sav'")
+pipeline = joblib.load('full_pipeline_compressed.sav')
 
 st.title("🏥 Professional Health Dashboard & AI Analytics")
+st.markdown("---")
 
 col1, col2 = st.columns(2)
 with col1:
     st.subheader("👤 Patient Profile")
-    # FIX: Default name empty, placeholder added
     patient_name = st.text_input("Patient Full Name", value="", placeholder="Enter Name")
     age = st.number_input("Age", 1, 120, 30)
     gender = st.selectbox("Gender", ["Male", "Female", "Other"])
@@ -77,63 +68,63 @@ with col2:
     diet = st.selectbox("Diet Quality", ["Poor", "Average", "Good"])
     family_hist = st.selectbox("Family History", ["No", "Yes"])
 
-st.markdown("---")
+clinical_summary = {
+    "BP": f"{bp} mmHg",
+    "Glucose": f"{glucose} mg/dL",
+    "Cholesterol": f"{cholesterol} mg/dL",
+    "BMI": f"{bmi:.1f}"
+}
 
 # ==========================================
-# 3. ANALYSIS & SIMULATOR
+# 3. ANALYSIS & NEW FEATURES
 # ==========================================
 if st.button("🚀 Generate Full Health Analysis"):
-    # Data Prep
+    # A. PREDICTION
     features = ['Age', 'Gender', 'BMI', 'Smoking', 'AlcoholIntake', 'PhysicalActivity', 'DietQuality', 'SleepHours', 'BloodPressure', 'Cholesterol', 'Glucose', 'FamilyHistory', 'StressLevel']
     input_df = pd.DataFrame([[age, gender, bmi, smoking, "Low", activity, diet, 7.0, bp, cholesterol, glucose, family_hist, stress]], columns=features)
     
     prob = pipeline.predict_proba(input_df)[0][1] * 100
     res_text = "Chronic Disease Likely" if prob > 50 else "No Chronic Disease"
 
-    # Results Header
-    if prob > 50:
-        st.error(f"### Status: {res_text} ({prob:.1f}%)")
-    else:
-        st.success(f"### Status: {res_text} ({prob:.1f}%)")
+    st.markdown("---")
+    
+    # B. FEATURE 6: LIFESTYLE SCORE
+    st.subheader("🎯 Lifestyle Health Score")
+    l_score = 100
+    if smoking == "Yes": l_score -= 30
+    if diet == "Poor": l_score -= 20
+    if activity < 2: l_score -= 20
+    if stress > 7: l_score -= 15
+    l_score = max(0, min(100, l_score))
+    
+    s_col1, s_col2 = st.columns([2, 1])
+    with s_col1:
+        st.progress(l_score / 100)
+    with s_col2:
+        score_color = "green" if l_score > 70 else "orange" if l_score > 40 else "red"
+        st.markdown(f"Score: :{score_color}[**{l_score}/100**]")
 
-    # Metric Cards
-    m1, m2, m3 = st.columns(3)
-    m1.metric("BP Points", f"{bp}", delta=f"{bp-120}", delta_color="inverse")
-    m2.metric("Glucose Points", f"{glucose}", delta=f"{glucose-100}", delta_color="inverse")
-    m3.metric("BMI Points", f"{bmi:.1f}", delta=f"{bmi-22.0:.1f}", delta_color="inverse")
+    # C. WHO CLASSIFICATION (Feature 7)
+    st.subheader("🔬 Clinical Classification (WHO Standards)")
+    c1, c2 = st.columns(2)
+    with c1:
+        if bp < 120: st.info("BP Status: Normal")
+        elif 120 <= bp < 140: st.warning("BP Status: Pre-hypertension")
+        else: st.error("BP Status: Hypertension (High BP)")
+    with c2:
+        if glucose < 100: st.info("Glucose: Normal")
+        elif 100 <= glucose < 126: st.warning("Glucose: Prediabetic")
+        else: st.error("Glucose: Diabetic Range")
 
-    # What-If Simulator
+    # D. IMPROVEMENT SIMULATOR
     st.markdown("---")
     st.subheader("🏁 Full Clinical Improvement Simulator")
-    sim_col1, sim_col2 = st.columns(2)
-    with sim_col1:
-        t_bp = st.slider("Target BP", 80, 200, int(bp))
-        t_glu = st.slider("Target Glucose", 50, 300, int(glucose))
-    with sim_col2:
-        t_cho = st.slider("Target Cholesterol", 100, 400, int(cholesterol))
-        t_bmi_sim = st.slider("Target BMI", 10.0, 50.0, float(bmi))
-
-    # FIX: Using .at[0, col] to avoid Index/Scalar ValueError
+    t_bp = st.slider("Target BP", 80, 200, int(bp))
     sim_df = input_df.copy()
     sim_df.at[0, 'BloodPressure'] = t_bp
-    sim_df.at[0, 'Glucose'] = t_glu
-    sim_df.at[0, 'Cholesterol'] = t_cho
-    sim_df.at[0, 'BMI'] = t_bmi_sim
-    
     sim_prob = pipeline.predict_proba(sim_df)[0][1] * 100
     st.metric("Simulated Risk Score", f"{sim_prob:.1f}%", delta=f"{sim_prob-prob:.1f}%", delta_color="inverse")
 
-    # PDF Download
-    st.markdown("---")
-    summary_data = {"BP": f"{bp} mmHg", "Glucose": f"{glucose} mg/dL", "Cholesterol": f"{cholesterol} mg/dL", "BMI": f"{bmi:.1f}"}
-    
-    try:
-        pdf_bytes = create_pdf(patient_name, age, gender, res_text, prob, summary_data)
-        st.download_button(
-            label="📥 Download Clinical Report (PDF)",
-            data=pdf_bytes,
-            file_name=f"Report_{patient_name if patient_name else 'Patient'}.pdf",
-            mime="application/pdf"
-        )
-    except Exception as e:
-        st.error(f"PDF Error: {e}")
+    # PDF DOWNLOAD
+    pdf_bytes = create_pdf(patient_name, age, gender, res_text, prob, l_score, clinical_summary)
+    st.download_button("📥 Download Analytical Report (PDF)", pdf_bytes, f"Report_{patient_name}.pdf", "application/pdf")
