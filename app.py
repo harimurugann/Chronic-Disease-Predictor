@@ -9,7 +9,7 @@ from fpdf import FPDF
 # ==========================================
 lang_data = {
     "English": {
-        "title": "🏥 Professional Health Prediction & Analytics",
+        "title": "🏥 Advanced AI Health Diagnostic Pro",
         "profile": "👤 Patient Profile",
         "vitals": "🩸 Clinical Metrics",
         "run_btn": "🚀 Run Full Diagnostic Analysis",
@@ -31,25 +31,24 @@ lang_data = {
 def get_recommendations(bp, glu, bmi, smoking, lang):
     recs = []
     if lang == "Tamil":
-        if bp > 140: recs.append(("✅ இரத்த அழுத்தம் அதிகம்: உப்பைக் குறைக்கவும்.", "Ratha Alutham Adhigam: Uppu kurakaum (High BP: Reduce Salt)"))
-        if glu > 150: recs.append(("✅ சர்க்கரை அளவு அதிகம்: இனிப்பைத் தவிர்க்கவும்.", "Sarkarai Adhigam: Inippu thavirkaum (High Glucose: Avoid Sugar)"))
-        if bmi > 25: recs.append(("✅ எடை அதிகம்: நடைப்பயிற்சி செய்யவும்.", "Edai Adhigam: Nadai payirchi seiyaum (High BMI: Walk Daily)"))
-        if smoking == "Yes": recs.append(("✅ புகைப்பிடித்தலைத் தவிர்க்கவும்.", "Pogai pidithalai thavirkaum (Quit Smoking)"))
+        # Dashboard-la Tamil-um, PDF-la safe English-um irukkum
+        if bp > 140: recs.append(("✅ இரத்த அழுத்தம் அதிகம்: உப்பைக் குறைக்கவும்.", "High BP: Reduce salt intake."))
+        if glu > 150: recs.append(("✅ சர்க்கரை அளவு அதிகம்: இனிப்பைத் தவிர்க்கவும்.", "High Glucose: Avoid sugary foods."))
+        if bmi > 25: recs.append(("✅ எடை அதிகம்: நடைப்பயிற்சி செய்யவும்.", "High BMI: Daily walk recommended."))
+        if smoking == "Yes": recs.append(("✅ புகைப்பிடித்தலைத் தவிர்க்கவும்.", "Quit smoking for heart health."))
     else:
         if bp > 140: recs.append(("✅ BP is High: Reduce salt intake.", "BP is High: Reduce salt intake."))
         if glu > 150: recs.append(("✅ Glucose is High: Avoid sugar.", "Glucose is High: Avoid sugar."))
-        if bmi > 25: recs.append(("✅ Weight: Daily 30 mins walk.", "Weight: Daily 30 mins walk."))
-        if smoking == "Yes": recs.append(("✅ Quit Smoking: Essential.", "Quit Smoking: Essential."))
     return recs
 
 # ==========================================
-# 2. ROBUST PDF FUNCTION (No More Crashes)
+# 2. ROBUST PDF FUNCTION (No More Unicode Crashes)
 # ==========================================
 def create_pdf(name, age, gender, result, prob, medical_data, recommendations, lang):
     pdf = FPDF()
     pdf.add_page()
     
-    # Professional Header
+    # Header Section
     pdf.set_fill_color(44, 62, 80)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Arial", 'B', 18)
@@ -60,7 +59,7 @@ def create_pdf(name, age, gender, result, prob, medical_data, recommendations, l
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(0, 10, txt=f"Patient: {name if name else 'Patient'} | Age: {age} | Gender: {gender}", ln=True)
     
-    # Table of Vitals
+    # Vitals Table
     pdf.ln(5)
     for key, value in medical_data.items():
         pdf.set_font("Arial", 'B', 10)
@@ -71,17 +70,16 @@ def create_pdf(name, age, gender, result, prob, medical_data, recommendations, l
     # Diagnosis Result
     pdf.ln(10)
     pdf.set_font("Arial", 'B', 12)
-    res_label = "Assessment Result:" if lang == "English" else "Parisodhanaimudivu (Result):"
-    pdf.cell(0, 10, txt=f"{res_label} {result} ({prob:.1f}%)", ln=True)
+    pdf.cell(0, 10, txt=f"Assessment Result: {result} ({prob:.1f}%)", ln=True)
 
-    # Clean Advice (Phonetic Tamil/English to avoid Unicode Errors)
+    # Clinical Advice (Only safe characters to prevent Rendering Pause)
     pdf.ln(5)
-    advice_header = "CLINICAL ADVICE & NEXT STEPS:" if lang == "English" else "MARUTHUVA ALOSANAI (ADVICE):"
-    pdf.cell(0, 10, txt=advice_header, ln=True)
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(0, 10, txt="CLINICAL ADVICE & NEXT STEPS:", ln=True)
     
     pdf.set_font("Arial", size=10)
     for r_pair in recommendations:
-        # r_pair[1] is always safe Latin characters
+        # Index 1 picks the clean English text for PDF safety
         clean_text = r_pair[1].encode('ascii', 'ignore').decode('ascii')
         pdf.multi_cell(0, 8, txt=f"- {clean_text}")
         
@@ -91,20 +89,20 @@ def create_pdf(name, age, gender, result, prob, medical_data, recommendations, l
     return pdf_out
 
 # ==========================================
-# 3. MAIN APP INTERFACE
+# 3. MAIN APP UI
 # ==========================================
 st.set_page_config(page_title="Health AI Pro", layout="wide")
 
-# Sidebar
+# Sidebar settings
 st.sidebar.title("⚙️ Settings")
 sel_lang = st.sidebar.selectbox("Language / மொழி", ["English", "Tamil"])
 L = lang_data[sel_lang]
 
-# Load Model
+# Model loading
 try:
     pipeline = joblib.load('full_pipeline_compressed.sav')
 except:
-    st.error("Model file 'full_pipeline_compressed.sav' missing!")
+    st.error("Model file not found!")
 
 st.title(L["title"])
 st.markdown("---")
@@ -129,55 +127,48 @@ with col2:
     family = st.selectbox("Family History", ["No", "Yes"])
 
 # ==========================================
-# 4. ANALYSIS & PDF GENERATION
+# 4. ANALYSIS LOGIC
 # ==========================================
 if st.button(L["run_btn"]):
-    # Prep Data
+    # Prep Input
     features = ['Age', 'Gender', 'BMI', 'Smoking', 'AlcoholIntake', 'PhysicalActivity', 'DietQuality', 'SleepHours', 'BloodPressure', 'Cholesterol', 'Glucose', 'FamilyHistory', 'StressLevel']
     input_df = pd.DataFrame([[age, gender, bmi, smoking, "Low", activity, diet, 7.0, bp, cho, glu, family, stress]], columns=features)
     
     prob = pipeline.predict_proba(input_df)[0][1] * 100
     res_text = "Risk Detected" if prob > 50 else "Healthy Range"
 
-    # Display Results
     st.markdown("---")
     if prob > 50: st.error(f"### {L['status']}: {res_text} ({prob:.1f}%)")
     else: st.success(f"### {L['status']}: {res_text} ({prob:.1f}%)")
 
-    # Metrics
-    m1, m2, m3 = st.columns(3)
-    m1.metric("Blood Pressure", f"{bp}", f"{bp-120}", delta_color="inverse")
-    m2.metric("Glucose Level", f"{glu}", f"{glu-100}", delta_color="inverse")
-    m3.metric("BMI Value", f"{bmi:.1f}", f"{bmi-22.5:.1f}", delta_color="inverse")
-
-    # Feature: Dynamic Recommendations
+    # Recommendations
     patient_recs = get_recommendations(bp, glu, bmi, smoking, sel_lang)
-    st.markdown("---")
     st.subheader(L["advice_title"])
     for r in patient_recs:
-        st.write(r[0]) # Displays Tamil/English with Emojis on Dashboard
+        st.write(r[0]) # Shows Tamil/English with Emojis on Web UI
 
     # ==========================================
-    # 5. THE DOWNLOAD BUTTON (PROPERLY NESTED)
+    # 5. THE DOWNLOAD BUTTON (Properly Aligned)
     # ==========================================
     st.markdown("---")
     st.subheader("📊 Report Center")
     summary = {"BP": f"{bp} mmHg", "Glucose": f"{glu} mg/dL", "BMI": f"{bmi:.1f}"}
     
     try:
-        # Generate the PDF
+        # PDF Bytes Generate
         pdf_bytes = create_pdf(p_name, age, gender, res_text, prob, summary, patient_recs, sel_lang)
         
-        st.success("✅ Assessment complete. Report is ready.")
+        st.info("💡 Analysis Complete. Your report is ready for download below.")
+        
+        # Centering the download button
         _, btn_col, _ = st.columns([1, 2, 1])
         with btn_col:
             st.download_button(
                 label=L["download_btn"],
                 data=pdf_bytes,
-                file_name=f"Medical_Report_{p_name if p_name else 'Patient'}.pdf",
+                file_name=f"Health_Report_{p_name if p_name else 'Patient'}.pdf",
                 mime="application/pdf",
                 use_container_width=True
             )
     except Exception as e:
         st.warning("⚠️ Note: PDF updated for safety. (Status: Ready)")
-        # st.write(e) # Only for debugging
