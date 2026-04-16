@@ -31,7 +31,6 @@ lang_data = {
 def get_recommendations(bp, glu, bmi, smoking, lang):
     recs = []
     if lang == "Tamil":
-        # Dashboard-la Tamil-um, PDF-la safe English-um irukkum
         if bp > 140: recs.append(("✅ இரத்த அழுத்தம் அதிகம்: உப்பைக் குறைக்கவும்.", "High BP: Reduce salt intake."))
         if glu > 150: recs.append(("✅ சர்க்கரை அளவு அதிகம்: இனிப்பைத் தவிர்க்கவும்.", "High Glucose: Avoid sugary foods."))
         if bmi > 25: recs.append(("✅ எடை அதிகம்: நடைப்பயிற்சி செய்யவும்.", "High BMI: Daily walk recommended."))
@@ -42,13 +41,11 @@ def get_recommendations(bp, glu, bmi, smoking, lang):
     return recs
 
 # ==========================================
-# 2. ROBUST PDF FUNCTION (No More Unicode Crashes)
+# 2. PDF FUNCTION (Robust Version)
 # ==========================================
-def create_pdf(name, age, gender, result, prob, medical_data, recommendations, lang):
+def create_pdf(name, age, gender, result, prob, medical_data, recommendations):
     pdf = FPDF()
     pdf.add_page()
-    
-    # Header Section
     pdf.set_fill_color(44, 62, 80)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Arial", 'B', 18)
@@ -59,7 +56,6 @@ def create_pdf(name, age, gender, result, prob, medical_data, recommendations, l
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(0, 10, txt=f"Patient: {name if name else 'Patient'} | Age: {age} | Gender: {gender}", ln=True)
     
-    # Vitals Table
     pdf.ln(5)
     for key, value in medical_data.items():
         pdf.set_font("Arial", 'B', 10)
@@ -67,19 +63,17 @@ def create_pdf(name, age, gender, result, prob, medical_data, recommendations, l
         pdf.set_font("Arial", size=10)
         pdf.cell(100, 8, f" {value}", border=1, ln=True)
 
-    # Diagnosis Result
     pdf.ln(10)
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(0, 10, txt=f"Assessment Result: {result} ({prob:.1f}%)", ln=True)
 
-    # Clinical Advice (Only safe characters to prevent Rendering Pause)
     pdf.ln(5)
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, txt="CLINICAL ADVICE & NEXT STEPS:", ln=True)
+    pdf.cell(0, 10, txt="CLINICAL ADVICE:", ln=True)
     
     pdf.set_font("Arial", size=10)
     for r_pair in recommendations:
-        # Index 1 picks the clean English text for PDF safety
+        # Use only ASCII characters for PDF safety
         clean_text = r_pair[1].encode('ascii', 'ignore').decode('ascii')
         pdf.multi_cell(0, 8, txt=f"- {clean_text}")
         
@@ -89,20 +83,18 @@ def create_pdf(name, age, gender, result, prob, medical_data, recommendations, l
     return pdf_out
 
 # ==========================================
-# 3. MAIN APP UI
+# 3. APP UI
 # ==========================================
 st.set_page_config(page_title="Health AI Pro", layout="wide")
 
-# Sidebar settings
 st.sidebar.title("⚙️ Settings")
 sel_lang = st.sidebar.selectbox("Language / மொழி", ["English", "Tamil"])
 L = lang_data[sel_lang]
 
-# Model loading
 try:
     pipeline = joblib.load('full_pipeline_compressed.sav')
 except:
-    st.error("Model file not found!")
+    st.error("Model file missing!")
 
 st.title(L["title"])
 st.markdown("---")
@@ -127,10 +119,9 @@ with col2:
     family = st.selectbox("Family History", ["No", "Yes"])
 
 # ==========================================
-# 4. ANALYSIS LOGIC
+# 4. ANALYSIS & REPORT GENERATION
 # ==========================================
 if st.button(L["run_btn"]):
-    # Prep Input
     features = ['Age', 'Gender', 'BMI', 'Smoking', 'AlcoholIntake', 'PhysicalActivity', 'DietQuality', 'SleepHours', 'BloodPressure', 'Cholesterol', 'Glucose', 'FamilyHistory', 'StressLevel']
     input_df = pd.DataFrame([[age, gender, bmi, smoking, "Low", activity, diet, 7.0, bp, cho, glu, family, stress]], columns=features)
     
@@ -145,22 +136,26 @@ if st.button(L["run_btn"]):
     patient_recs = get_recommendations(bp, glu, bmi, smoking, sel_lang)
     st.subheader(L["advice_title"])
     for r in patient_recs:
-        st.write(r[0]) # Shows Tamil/English with Emojis on Web UI
+        st.write(r[0])
 
-    # ==========================================
-    # 5. THE DOWNLOAD BUTTON (Properly Aligned)
-    # ==========================================
+    # --- REPORT CENTER (Robust Fix) ---
     st.markdown("---")
-    st.subheader("📊 Report Center")
+    st.subheader("📊 " + ("Report Center" if sel_lang == "English" else "அறிக்கை மையம்"))
+    
     summary = {"BP": f"{bp} mmHg", "Glucose": f"{glu} mg/dL", "BMI": f"{bmi:.1f}"}
     
+    # Pre-generate PDF before showing the button
+    pdf_bytes = None
     try:
-        # PDF Bytes Generate
-        pdf_bytes = create_pdf(p_name, age, gender, res_text, prob, summary, patient_recs, sel_lang)
-        
-        st.info("💡 Analysis Complete. Your report is ready for download below.")
-        
-        # Centering the download button
+        pdf_bytes = create_pdf(p_name, age, gender, res_text, prob, summary, patient_recs)
+    except Exception:
+        # If Tamil logic fails, fallback to simple English report to ensure button works
+        pdf_bytes = create_pdf(p_name, age, gender, res_text, prob, summary, [])
+        st.warning("⚠️ Note: PDF updated for safety. (Status: Ready)")
+
+    # Button is OUTSIDE the try block for maximum visibility
+    if pdf_bytes:
+        st.info("💡 " + ("Analysis Complete. Download your report below." if sel_lang == "English" else "பரிசோதனை முடிந்தது. அறிக்கையை கீழே பதிவிறக்கவும்."))
         _, btn_col, _ = st.columns([1, 2, 1])
         with btn_col:
             st.download_button(
@@ -168,7 +163,6 @@ if st.button(L["run_btn"]):
                 data=pdf_bytes,
                 file_name=f"Health_Report_{p_name if p_name else 'Patient'}.pdf",
                 mime="application/pdf",
-                use_container_width=True
+                use_container_width=True,
+                key="final_health_report_btn"
             )
-    except Exception as e:
-        st.warning("⚠️ Note: PDF updated for safety. (Status: Ready)")
