@@ -60,14 +60,18 @@ st.markdown("""
 def load_model():
     """Load the trained pipeline from disk (cached across re-runs)."""
     # Try best (tuned) pipeline first, fall back to base pipeline
+    def load_model():
     paths = [
-        "artefacts/chronic_disease_best_pipeline.pkl.gz",
-        "artefacts/chronic_disease_pipeline.pkl.gz"
+        "artifacts/chronic_disease_best_pipeline.pkl.gz",
+        "artifacts/chronic_disease_gbm_model.sav",
+        "artifacts/chronic_disease_pipeline.pkl.gz"
     ]
+    
     for path in paths:
         if os.path.exists(path):
             return joblib.load(path), path
-    st.error("❌  Model file not found. Run chronic_disease_model.py first.")
+            
+    st.error("❌ Model file not found. Run chronic_disease_model.py first.")
     st.stop()
 
 model, model_path = load_model()
@@ -215,15 +219,15 @@ tabs = st.tabs([
 ])
 
 plot_map = {
-    0: "artefacts/01_target_distribution.png",
-    1: "artefacts/02_feature_distributions.png",
-    2: "artefacts/03_correlation_heatmap.png",
-    3: "artefacts/04_eda_boxplots.png",
-    4: "artefacts/07_roc_curve.png",
-    5: "artefacts/06_confusion_matrix.png",
-    6: "artefacts/09_feature_importance.png",
-    7: "artefacts/08_cross_validation.png",
-}
+  
+if st.session_state.current_tab == "Visualisation":
+    st.header("📊 Data Visualisation & Insights")
+    
+    # Example: Age distribution plot
+    import plotly.express as px
+    fig = px.histogram(df, x="Age", color="HasChronicDisease", 
+                       title="Age Distribution vs Chronic Disease")
+    st.plotly_chart(fig)
 
 for tab_idx, tab in enumerate(tabs):
     with tab:
