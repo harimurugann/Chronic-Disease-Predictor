@@ -246,33 +246,33 @@ with col_right:
         st.info("👈 Fill in the patient details on the left panel and click **Predict Risk**.")
 
 # ─── Visualisations Tab ───────────────────────────────────────────────────────
-st.divider()
-st.subheader("📈 Model Performance Visualisations")
-
-tabs = st.tabs([
-    "Target Distribution", "Feature Distributions", "Correlation Heatmap",
-    "EDA Box Plots", "ROC Curve", "Confusion Matrix", "Feature Importance", "Cross-Validation"
-])
-
-plot_map = {
-  
 if st.session_state.current_tab == "Visualisation":
-    st.header("📊 Data Visualisation & Insights")
+    st.header("📊 Model Performance Visualisations")
     
-    # Example: Age distribution plot
-    import plotly.express as px
-    fig = px.histogram(df, x="Age", color="HasChronicDisease", 
-                       title="Age Distribution vs Chronic Disease")
-    st.plotly_chart(fig)
-
-for tab_idx, tab in enumerate(tabs):
-    with tab:
-        img_path = plot_map[tab_idx]
-        if os.path.exists(img_path):
-            st.image(img_path, use_container_width=True)
-        else:
-            st.warning(f"Plot not found: {img_path}. Run chronic_disease_model.py first.")
-
+    tabs = st.tabs([
+        "Target Distribution", "Feature Distributions", "Correlation Heatmap",
+        "EDA Box Plots", "ROC Curve", "Confusion Matrix", 
+        "Feature Importance", "Cross-Validation"
+    ])
+    
+    plot_map = {
+        0: "artifacts/01_target_distribution.png",
+        1: "artifacts/02_feature_distributions.png",
+        2: "artifacts/03_correlation_heatmap.png",
+        3: "artifacts/04_eda_boxplots.png",
+        4: "artifacts/07_roc_curve.png",
+        5: "artifacts/06_confusion_matrix.png",
+        6: "artifacts/09_feature_importance.png",
+        7: "artifacts/08_cross_validation.png",
+    }
+    
+    for tab_idx, tab in enumerate(tabs):
+        with tab:
+            img_path = plot_map[tab_idx]
+            if os.path.exists(img_path):
+                st.image(img_path, use_container_width=True)
+            else:
+                st.warning(f"Plot not found: {img_path}. Run chronic_disease_model.py first.")
 # ─── Footer ───────────────────────────────────────────────────────────────────
 st.divider()
 st.caption(
