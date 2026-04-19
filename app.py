@@ -61,6 +61,7 @@ def load_model():
     """Load the trained pipeline from disk (cached across re-runs)."""
     # Try best (tuned) pipeline first, fall back to base pipeline
     def load_model():
+    # Inga 'artefacts' ku bathula 'artifacts' (i-vachu) nu maathiruken
     paths = [
         "artifacts/chronic_disease_best_pipeline.pkl.gz",
         "artifacts/chronic_disease_gbm_model.sav",
@@ -71,6 +72,9 @@ def load_model():
         if os.path.exists(path):
             return joblib.load(path), path
             
+    # Intha error handling loop-ku veliya irukkanum (Indent check pannikonga)
+    st.error("❌ Model file not found. Run chronic_disease_model.py first.")
+    st.stop()            
     st.error("❌ Model file not found. Run chronic_disease_model.py first.")
     st.stop()
 
