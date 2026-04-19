@@ -73,6 +73,7 @@ def load_model():
     st.stop()
 
 model, model_path = load_model()
+
 if st.session_state.current_tab == "Visualisation":
     st.header("📊 Model Performance Visualisations")
     
@@ -242,16 +243,13 @@ with col_right:
     else:
         st.info("👈 Fill in the patient details on the left panel and click **Predict Risk**.")
 
-# ─── Visualisations Tab ───────────────────────────────────────────────────────
 if st.session_state.current_tab == "Visualisation":
     st.header("📊 Model Performance Visualisations")
-    
     tabs = st.tabs([
         "Target Distribution", "Feature Distributions", "Correlation Heatmap",
         "EDA Box Plots", "ROC Curve", "Confusion Matrix", 
         "Feature Importance", "Cross-Validation"
     ])
-    
     plot_map = {
         0: "artifacts/01_target_distribution.png",
         1: "artifacts/02_feature_distributions.png",
@@ -262,14 +260,13 @@ if st.session_state.current_tab == "Visualisation":
         6: "artifacts/09_feature_importance.png",
         7: "artifacts/08_cross_validation.png",
     }
-    
     for tab_idx, tab in enumerate(tabs):
         with tab:
             img_path = plot_map[tab_idx]
             if os.path.exists(img_path):
                 st.image(img_path, use_container_width=True)
             else:
-                st.warning(f"Plot not found: {img_path}. Run chronic_disease_model.py first.")
+                st.warning(f"Plot not found: {img_path}")
 # ─── Footer ───────────────────────────────────────────────────────────────────
 st.divider()
 st.caption(
