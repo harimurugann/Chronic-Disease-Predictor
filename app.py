@@ -5,7 +5,7 @@ from PIL import Image, ImageFilter
 import time
 from agents.swarm_logic import DiagnosticSwarm # Importing our Swarm Engine
 from dashboard.icu_live import render_icu_dashboard
-from image_analyzer import render_vision_dashboard
+from vision.image_analyzer import render_vision_dashboard
 # --- PAGE SETUP ---
 st.set_page_config(page_title="OmniHealth AI CDSS", page_icon="🌐", layout="wide")
 
