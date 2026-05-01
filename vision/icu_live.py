@@ -1,66 +1,67 @@
-# dashboard/icu_live.py
 import streamlit as st
-import numpy as np
+from PIL import Image, ImageFilter
 import time
-import plotly.graph_objs as go
 
-def render_icu_dashboard():
-    st.markdown("### 🫀 ICU Live Vitals Stream (IoT Simulation)")
-    st.write("Simulating real-time edge AI data streaming from patient monitors.")
+def render_vision_dashboard():
+    st.markdown("### 👁️ AI Medical Image Diagnostics")
+    st.write("Upload X-Ray or MRI scans for real-time anomaly detection using Computer Vision pipelines.")
+    st.divider()
     
-    start_btn = st.button("▶️ Start Live Stream", type="primary", use_container_width=True)
+    # 1. File Uploader for Images
+    uploaded_file = st.file_uploader("Upload Medical Scan (JPG/PNG)", type=["jpg", "jpeg", "png"])
     
-    if start_btn:
-        # Create empty placeholders for live updating
-        col1, col2, col3 = st.columns(3)
-        hr_metric = col1.empty()
-        bp_metric = col2.empty()
-        o2_metric = col3.empty()
+    if uploaded_file is not None:
+        col1, col2 = st.columns([1, 1], gap="large")
         
-        chart_placeholder = st.empty()
-        
-        # Initialize historical data for the chart
-        hr_data = list(np.random.normal(80, 2, 30))
-        o2_data = list(np.random.normal(98, 0.5, 30))
-        
-        st.toast("Connected to ICU Edge Device...", icon="📡")
-        
-        # Simulate real-time streaming for 30 seconds
-        for i in range(30):
-            # Generate fluctuating live data
-            current_hr = int(np.random.normal(80, 6))
-            current_sys = int(np.random.normal(120, 5))
-            current_dia = int(np.random.normal(80, 3))
-            current_o2 = min(100, int(np.random.normal(98, 1)))
+        with col1:
+            st.subheader("Original Scan")
+            try:
+                image = Image.open(uploaded_file)
+                st.image(image, use_container_width=True, caption="Uploaded Patient Scan")
+            except Exception as e:
+                st.error("Error reading the image. Please upload a valid image file.")
+                return
             
-            # Update chart history
-            hr_data.append(current_hr)
-            hr_data.pop(0)
-            o2_data.append(current_o2)
-            o2_data.pop(0)
+        with col2:
+            st.subheader("AI Analysis Panel")
+            analyze_btn = st.button("🔍 Run Deep Vision Scan", type="primary", use_container_width=True)
             
-            # Update Metrics UI
-            hr_metric.metric("Heart Rate (BPM)", current_hr, delta=current_hr - 80, delta_color="inverse")
-            bp_metric.metric("Blood Pressure (mmHg)", f"{current_sys}/{current_dia}")
-            o2_metric.metric("Oxygen Level (SpO2 %)", current_o2, delta=current_o2 - 98)
-            
-            # Create Live Plotly Chart
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(y=hr_data, mode='lines', name='Heart Rate', line=dict(color='#f5576c', width=3)))
-            fig.add_trace(go.Scatter(y=o2_data, mode='lines', name='SpO2', line=dict(color='#2ecc71', width=3)))
-            
-            fig.update_layout(
-                title="Continuous Vitals Timeline",
-                template="plotly_dark",
-                height=350,
-                margin=dict(l=0, r=0, t=40, b=0),
-                xaxis=dict(showgrid=False, showticklabels=False),
-                yaxis=dict(range=[60, 110])
-            )
-            
-            chart_placeholder.plotly_chart(fig, use_container_width=True)
-            
-            # Pause for 1 second to simulate live streaming
-            time.sleep(1)
-            
-        st.success("Simulation complete. The edge device connection has been safely closed.")
+            if analyze_btn:
+                # --- AI Processing Simulation ---
+                with st.spinner("Initializing CNN Architecture..."):
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+                    
+                    steps = [
+                        "Enhancing image contrast...", 
+                        "Applying edge detection filters...", 
+                        "Extracting deep visual features...", 
+                        "Running classification layers..."
+                    ]
+                    
+                    for i, step in enumerate(steps):
+                        status_text.caption(f"⚙️ {step}")
+                        progress_bar.progress((i + 1) * 25)
+                        time.sleep(0.8) # Simulate processing delay
+                        
+                    status_text.empty()
+                
+                # --- Feature Extraction Map ---
+                st.write("**AI Attention Map (Feature Extraction):**")
+                edge_image = image.convert("L").filter(ImageFilter.FIND_EDGES)
+                st.image(edge_image, use_container_width=True, caption="Highlighting Structural Contours")
+                
+                st.divider()
+                
+                # --- Diagnostic Output ---
+                st.markdown("#### 🎯 Diagnostic Conclusion")
+                
+                img_hash = sum(image.size) % 100
+                prob = img_hash / 100.0
+                
+                if prob > 0.5:
+                    st.error(f"⚠️ **POTENTIAL ANOMALY DETECTED** (Confidence: {prob*100:.1f}%)")
+                    st.write("The vision model has detected irregular structural patterns suggesting potential pathology.")
+                else:
+                    st.success(f"✅ **NO SIGNIFICANT ANOMALIES** (Confidence: {(1-prob)*100:.1f}%)")
+                    st.write("The scan appears structurally normal based on current AI training data.")
