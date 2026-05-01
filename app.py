@@ -109,3 +109,6 @@ elif module == "Medical Imaging (Beta)":
 elif module == "ICU Live Monitor (Beta)":
     st.title("🫀 Live Vitals Dashboard")
     st.warning("Module under development. Will feature real-time IoT simulated data streaming.")
+
+elif module == "ICU Live Monitor (Beta)":
+    render_icu_dashboard()
