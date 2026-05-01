@@ -2,7 +2,7 @@
 import streamlit as st
 import pandas as pd
 from agents.swarm_logic import DiagnosticSwarm # Importing our Swarm Engine
-from icu_live import render_icu_dashboard
+from dashboard.icu_live import render_icu_dashboard
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="OmniHealth AI CDSS", page_icon="🌐", layout="wide")
