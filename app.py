@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 from agents.swarm_logic import DiagnosticSwarm # Importing our Swarm Engine
 from dashboard.icu_live import render_icu_dashboard
+from vision.image_analyzer import render_vision_dashboard
 
 # --- PAGE SETUP ---
 st.set_page_config(page_title="OmniHealth AI CDSS", page_icon="🌐", layout="wide")
@@ -104,7 +105,8 @@ if module == "Diagnostic Swarm AI":
 
 elif module == "Medical Imaging (Beta)":
     st.title("👁️ Computer Vision Diagnostics")
-    st.warning("Module under development. Will feature X-Ray and MRI anomaly detection soon.")
+elif module == "Medical Imaging (Beta)":
+    render_vision_dashboard()
 
 elif module == "ICU Live Monitor (Beta)":
     render_icu_dashboard()
