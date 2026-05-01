@@ -107,8 +107,4 @@ elif module == "Medical Imaging (Beta)":
     st.warning("Module under development. Will feature X-Ray and MRI anomaly detection soon.")
 
 elif module == "ICU Live Monitor (Beta)":
-    st.title("🫀 Live Vitals Dashboard")
-    st.warning("Module under development. Will feature real-time IoT simulated data streaming.")
-
-elif module == "ICU Live Monitor (Beta)":
     render_icu_dashboard()
