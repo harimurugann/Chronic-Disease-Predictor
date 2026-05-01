@@ -47,7 +47,7 @@ def load_resources():
             break
     
     # Dataset for Live Insights
-    data_path = "chronic_disease_dataset.csv" 
+    data_path = "data/chronic_disease_dataset.csv" 
     df = pd.read_csv(data_path) if os.path.exists(data_path) else pd.DataFrame()
     return model, df, model_path
 
