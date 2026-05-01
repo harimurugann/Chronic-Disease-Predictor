@@ -21,11 +21,6 @@ st.markdown("""
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         font-size: 3rem; font-weight: 800; text-align: center; margin-bottom: 0px;
     }
-    .card {
-        border-radius: 15px; padding: 20px;
-        background-color: #f8f9fa; border: 1px solid #e9ecef;
-        box-shadow: 2px 2px 10px rgba(0,0,0,0.05);
-    }
     .stButton > button {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white; border-radius: 10px; height: 3em; width: 100%;
@@ -38,117 +33,117 @@ st.markdown("""
 # ─── DATA & MODEL LOADING ───────────────────────────────────────────────────
 @st.cache_resource
 def load_resources():
-    # Model Loading
-    paths = ["artifacts/chronic_disease_best_pipeline.pkl.gz", "artifacts/chronic_disease_pipeline.pkl.gz"]
+    paths = [
+        "artifacts/chronic_disease_best_pipeline.pkl.gz",
+        "artifacts/chronic_disease_pipeline.pkl.gz",
+        "artifacts/chronic_disease_gbm_model.sav"
+    ]
     model = None
+    model_path = "None"
     for p in paths:
         if os.path.exists(p):
             model = joblib.load(p)
+            model_path = p
             break
     
-    # Dataset Loading (For Real-time Visuals)
-    # Replace with your actual dataset path
+    # Dataset for Live Insights
     data_path = "data/chronic_disease_dataset.csv" 
     df = pd.read_csv(data_path) if os.path.exists(data_path) else pd.DataFrame()
-    
-    return model, df
+    return model, df, model_path
 
-model, df = load_resources()
+model, df, model_path = load_resources()
 
 # ─── SIDEBAR NAVIGATION ──────────────────────────────────────────────────────
-st.sidebar.image("https://cdn-icons-png.flaticon.com/512/3063/3063176.png", width=100)
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Analysis & Prediction", "Live Insights", "Model Performance"])
+st.sidebar.title("🏥 Health Panel")
+page = st.sidebar.radio("Navigation", ["Diagnosis", "Live Insights", "Metrics"])
 
-# ─── HEADER ──────────────────────────────────────────────────────────────────
-st.markdown('<div class="main-header">🏥 Chronic Disease AI</div>', unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Real-time Clinical Decision Support System</p>", unsafe_allow_html=True)
-st.divider()
-
-if page == "Analysis & Prediction":
+if page == "Diagnosis":
+    st.subheader("🔬 Patient Risk Assessment")
+    
     col1, col2 = st.columns([1, 2], gap="large")
 
     with col1:
-        st.subheader("📋 Patient Vitals")
-        with st.container():
-            age = st.number_input("Age", 1, 120, 45)
-            gender = st.selectbox("Gender", ["Male", "Female"])
-            bmi = st.slider("Body Mass Index (BMI)", 10.0, 50.0, 24.5)
-            bp = st.slider("Systolic Blood Pressure", 80, 200, 120)
-            glucose = st.slider("Glucose Level", 50, 300, 100)
-            
-            with st.expander("Lifestyle Factors"):
-                smoking = st.selectbox("Smoking Status", ["No", "Yes"])
-                alcohol = st.selectbox("Alcohol Intake", ["Low", "Moderate", "High"])
-                activity = st.slider("Physical Activity (hrs/wk)", 0, 21, 5)
-                stress = st.select_slider("Stress Level", options=list(range(1, 11)))
-            
-            predict_btn = st.button("RUN AI DIAGNOSIS")
+        st.write("### Input Vitals")
+        age = st.number_input("Age", 18, 100, 45)
+        gender = st.selectbox("Gender", ["Male", "Female"])
+        bmi = st.slider("BMI", 10.0, 50.0, 25.0)
+        smoking = st.selectbox("Smoking", ["No", "Yes"])
+        alcohol = st.selectbox("Alcohol Intake", ["Low", "Moderate", "High"])
+        activity = st.slider("Physical Activity (hrs/wk)", 0.0, 20.0, 5.0)
+        diet = st.selectbox("Diet Quality", ["Poor", "Average", "Good"])
+        sleep = st.slider("Sleep Hours", 3.0, 12.0, 7.0)
+        bp = st.slider("Blood Pressure", 80, 200, 120)
+        cholesterol = st.slider("Cholesterol", 100, 350, 180)
+        glucose = st.slider("Glucose", 60, 300, 100)
+        family_hist = st.selectbox("Family History", ["No", "Yes"])
+        stress = st.slider("Stress Level", 1, 10, 5)
+        
+        predict_btn = st.button("RUN ANALYSIS")
 
     with col2:
         if predict_btn:
-            if model is not None:
-                # Prepare Input for Model
+            if model:
+                # 🛠️ EXACT MATCH WITH TRAINING COLUMNS (Check spelling carefully)
                 input_df = pd.DataFrame([{
-                    "Age": age, "Gender": gender, "BMI": bmi, "Smoking": smoking,
-                    "AlcoholIntake": alcohol, "PhysicalActivity": activity,
-                    "BloodPressure": bp, "Glucose": glucose, "StressLevel": stress,
-                    # Add other missing features used during training here
+                    "Age": age,
+                    "Gender": gender,
+                    "BMI": bmi,
+                    "Smoking": smoking,
+                    "AlcoholIntake": alcohol,
+                    "PhysicalActivity": activity,
+                    "DietQuality": diet,
+                    "SleepHours": sleep,
+                    "BloodPressure": bp,
+                    "Cholesterol": cholesterol,
+                    "Glucose": glucose,
+                    "FamilyHistory": family_hist,
+                    "StressLevel": stress
                 }])
 
-                # Prediction Logic
-                prob = model.predict_proba(input_df)[0][1]
+                try:
+                    prob = model.predict_proba(input_df)[0][1]
+                    res_color = "#f5576c" if prob > 0.5 else "#2ecc71"
+                    
+                    st.markdown(f"""
+                        <div style="background-color:{res_color}; padding:25px; border-radius:15px; text-align:center; color:white;">
+                            <h2 style='color:white;'>Risk Probability: {prob*100:.1f}%</h2>
+                            <p style='font-size:1.2rem;'>{"HIGH RISK - MEDICAL ATTENTION NEEDED" if prob > 0.5 else "LOW RISK - STATUS HEALTHY"}</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.divider()
+                    st.write("#### 📊 Key Indicators")
+                    m1, m2, m3 = st.columns(3)
+                    m1.metric("BMI", f"{bmi:.1f}", "Warning" if bmi > 25 else "Normal", delta_color="inverse")
+                    m2.metric("BP", bp, "High" if bp > 130 else "Optimal", delta_color="inverse")
+                    m3.metric("Glucose", glucose, "High" if glucose > 140 else "Stable", delta_color="inverse")
                 
-                # Real-time Result UI
-                st.subheader("🎯 Diagnosis Result")
-                risk_color = "#f5576c" if prob > 0.5 else "#2ecc71"
-                
-                st.markdown(f"""
-                    <div style="background-color:{risk_color}; padding:30px; border-radius:15px; text-align:center; color:white;">
-                        <h1 style='color:white;'>{prob*100:.1f}%</h1>
-                        <p style='font-size:1.5rem;'>{"HIGH RISK DETECTED" if prob > 0.5 else "LOW RISK / HEALTHY"}</p>
-                    </div>
-                """, unsafe_allow_html=True)
-
-                # Summary Statistics
-                st.write("---")
-                m1, m2, m3 = st.columns(3)
-                m1.metric("Patient BMI", bmi, delta="- Normal" if 18.5 <= bmi <= 25 else "Attention Required", delta_color="inverse")
-                m2.metric("BP Status", bp, delta="Elevated" if bp > 130 else "Normal", delta_color="inverse")
-                m3.metric("Glucose", glucose, delta="High" if glucose > 140 else "Stable", delta_color="inverse")
+                except Exception as e:
+                    st.error(f"Prediction Error: {e}")
+                    st.info("💡 Hint: Your model expects specific column names. Check your training dataset columns.")
             else:
-                st.error("Model file not found in artifacts folder!")
-        else:
-            st.info("Please input patient data and click 'Run AI Diagnosis' to see real-time results.")
+                st.error("Model artifacts not found! Check 'artifacts' folder.")
 
 elif page == "Live Insights":
-    st.subheader("📈 Real-time Population Analysis")
+    st.subheader("📈 Population Data Trends")
     if not df.empty:
-        col_a, col_b = st.columns(2)
-        with col_a:
-            fig1 = px.box(df, x="HasChronicDisease", y="Glucose", color="HasChronicDisease", title="Glucose Impact on Disease")
-            st.plotly_chart(fig1, use_container_width=True)
-        with col_b:
-            fig2 = px.scatter(df, x="Age", y="BloodPressure", color="HasChronicDisease", title="Age vs BP Trends")
+        tab1, tab2 = st.tabs(["Glucose vs Risk", "Age vs BP"])
+        with tab1:
+            fig = px.histogram(df, x="Glucose", color="HasChronicDisease", barmode="overlay", title="Glucose Distribution")
+            st.plotly_chart(fig, use_container_width=True)
+        with tab2:
+            fig2 = px.scatter(df, x="Age", y="BloodPressure", color="HasChronicDisease", trendline="ols")
             st.plotly_chart(fig2, use_container_width=True)
     else:
-        st.warning("Dataset not found for live analysis.")
+        st.warning("Please place 'chronic_disease_dataset.csv' in the 'data' folder for live visuals.")
 
-elif page == "Model Performance":
-    st.subheader("🧪 Validation Metrics")
-    # Static plots from artifacts
-    plot_map = {
-        "Confusion Matrix": "artifacts/06_confusion_matrix.png",
-        "Feature Importance": "artifacts/09_feature_importance.png",
-        "ROC Curve": "artifacts/07_roc_curve.png"
-    }
-    
-    selected_plot = st.selectbox("Select Metric", list(plot_map.keys()))
-    if os.path.exists(plot_map[selected_plot]):
-        st.image(plot_map[selected_plot], use_container_width=True)
+elif page == "Metrics":
+    st.subheader("🎯 Model Validation")
+    img_path = "artifacts/09_feature_importance.png"
+    if os.path.exists(img_path):
+        st.image(img_path, caption="Feature Importance (Global)")
     else:
-        st.error(f"Plot {selected_plot} not found in artifacts.")
+        st.error("Metric images not found in artifacts.")
 
-# ─── FOOTER ──────────────────────────────────────────────────────────────────
 st.sidebar.divider()
-st.sidebar.caption("⚕️ For Research Purposes Only")
+st.sidebar.info(f"Model: {model_path.split('/')[-1]}")
