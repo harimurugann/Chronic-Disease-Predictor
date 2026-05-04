@@ -288,7 +288,6 @@ elif module == "Population Health Analytics":
 
     st.divider()
 
-    # BI Charts using native Streamlit functions (Error-free)
     col_a, col_b = st.columns([2, 1], gap="large")
 
     with col_a:
@@ -311,10 +310,31 @@ elif module == "Population Health Analytics":
 
     st.divider()
     
-    st.write("**📍 Geospatial Risk Mapping (Simulated Regional Outbreaks)**")
-    # Generates simulated outbreak coordinate data centered regionally
+    # --- UPDATED LOGIC: INTERACTIVE GEOSPATIAL MAP ---
+    st.write("**📍 Geospatial Risk Mapping (Interactive Regional Outbreaks)**")
+    
+    # Dictionary of major cities and their Lat/Lon coordinates
+    regional_coords = {
+        "Salem / Vazhapadi": [11.6500, 78.2500],
+        "Chennai": [13.0827, 80.2707],
+        "Coimbatore": [11.0168, 76.9558],
+        "Madurai": [9.9252, 78.1198],
+        "Bengaluru": [12.9716, 77.5946],
+        "New Delhi": [28.6139, 77.2090]
+    }
+
+    # Dropdown for user to select the region
+    selected_region = st.selectbox("🌍 Select Region to Analyze Outbreak Hotspots:", list(regional_coords.keys()))
+    
+    # Fetch base coordinates based on selection
+    base_lat, base_lon = regional_coords[selected_region]
+
+    # Generate random simulated outbreak points scattered around the selected base location
+    # Dividing by [50, 50] creates a realistic spread radius across the city
     map_data = pd.DataFrame(
-        np.random.randn(80, 2) / [60, 60] + [11.65, 78.25], 
+        np.random.randn(100, 2) / [50, 50] + [base_lat, base_lon], 
         columns=['lat', 'lon']
     )
+    
+    # Streamlit natively pans and zooms to the new coordinates automatically
     st.map(map_data)
