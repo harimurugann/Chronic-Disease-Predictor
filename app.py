@@ -213,54 +213,73 @@ History of Hypertension and Type 2 Diabetes. Prescribed Aspirin 81mg daily."""
 # MODULE 5: GEN-AI CLINICAL ASSISTANT (LLM/RAG)
 # ==========================================
 elif module == "GenAI Clinical Assistant":
-    st.markdown("### 💬 GenAI Clinical Assistant")
-    st.write("Simulation of a Retrieval-Augmented Generation (RAG) agent querying medical guidelines.")
+    st.markdown("### 💬 GenAI Clinical Assistant (Multilingual Support)")
+    st.write("Simulation of a Retrieval-Augmented Generation (RAG) agent querying medical guidelines with Language Detection.")
     st.warning("⚠️ **Disclaimer:** This is an AI simulation for demonstration purposes. Not for actual medical use.")
     st.divider()
 
-    # Initialize chat history in Streamlit session state
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "Hello Doctor. I am your AI Clinical Assistant. How can I help you query the medical guidelines today?"}
+            {"role": "assistant", "content": "Hello Doctor. I am your AI Clinical Assistant. You can ask me medical queries in English or Tanglish (e.g., 'Heart pain irukku enna pannalam?')."}
         ]
 
-    # Display chat messages from history on app rerun
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # Accept user input
-    if prompt := st.chat_input("Ask a clinical query (e.g., 'What is the treatment for Hypertension?')..."):
-        # Add user message to chat history
+    if prompt := st.chat_input("Ask a clinical query..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
-        # Display user message in chat message container
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Display assistant response in chat message container
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
             full_response = ""
             
-            # Simple keyword matching to simulate an LLM responding contextually
             prompt_lower = prompt.lower()
-            if "hypertension" in prompt_lower or "bp" in prompt_lower:
-                ai_response = "Based on current clinical guidelines for **Hypertension**, first-line therapy typically involves Thiazide diuretics, Calcium channel blockers (CCBs), or ACE inhibitors/ARBs. Lifestyle modifications such as a low-sodium diet and exercise are also highly recommended. \n\n*Source Simulation: AHA/ACC Guidelines.*"
-            elif "diabetes" in prompt_lower or "sugar" in prompt_lower:
-                ai_response = "For the management of **Type 2 Diabetes**, Metformin is generally the first-line pharmacological treatment. Continual A1C monitoring every 3-6 months is advised alongside dietary interventions. \n\n*Source Simulation: ADA Standards of Medical Care.*"
-            elif "fever" in prompt_lower or "headache" in prompt_lower:
-                ai_response = "For general symptomatic relief of fever or mild headache, antipyretics and analgesics like Acetaminophen or Ibuprofen are recommended. Ensure the patient stays hydrated. If symptoms persist for more than 48 hours, a full diagnostic workup is advised."
-            else:
-                ai_response = f"I have scanned the simulated medical database for your query regarding '{prompt}'. In a fully deployed RAG architecture, this response would fetch specific peer-reviewed journals and clinical guidelines via vector embeddings."
             
-            # Simulate streaming effect (typing letter by letter)
+            # --- LANGUAGE DETECTION LOGIC ---
+            # Detecting if the user is typing in Tanglish
+            tanglish_keywords = ["irukku", "enna", "pannalam", "kodu", "valikkudhu", "kolandhai", "marundhu", "vali", "patient kku"]
+            is_tanglish = any(kw in prompt_lower for kw in tanglish_keywords)
+            
+            # --- CONTEXTUAL ROUTING LOGIC ---
+            if "heart" in prompt_lower or "chest" in prompt_lower or "nenju" in prompt_lower:
+                if is_tanglish:
+                    ai_response = "Nenju vali (Heart pain) irundha idhu emergency! Udane Aspirin 300mg maathirayai mella sollanga (chewable). Koodave Sorbitrate 5mg naakku adiyil vekkalam. Udane kitta irukka hospital-kku kootitu ponga."
+                else:
+                    ai_response = "For acute cardiac chest pain, immediate administration of chewable Aspirin (300mg) and Sublingual Nitroglycerin is standard emergency protocol. Immediate ECG and cardiology consult required."
+            
+            elif "fever" in prompt_lower or "kaachal" in prompt_lower or "kolandhai" in prompt_lower:
+                if is_tanglish:
+                    ai_response = "Kuzhandhaikku high fever irundha Paracetamol drops alladhu syrup (weight-kku yetra alavu) tharalam. Wet cloth vechu thodachu vidunga. Fever 2 naalku mela irundha udane pediatrician-a paarkavum."
+                else:
+                    ai_response = "For general symptomatic relief of fever, antipyretics like Acetaminophen or Ibuprofen are recommended. Ensure the patient stays hydrated. If symptoms persist for more than 48 hours, a diagnostic workup is advised."
+            
+            elif "hypertension" in prompt_lower or "bp" in prompt_lower or "pressure" in prompt_lower:
+                if is_tanglish:
+                    ai_response = "High BP (Hypertension) irundha, mudhalil uppu (sodium) sapidradha kuraikkanum. Doctor parindhurai padi Amlodipine alladhu Telmisartan pola maathiraigal edukkalam. Diet matrum udarpyirchi romba mukkiyam."
+                else:
+                    ai_response = "Based on current clinical guidelines for Hypertension, first-line therapy typically involves Thiazide diuretics, Calcium channel blockers (CCBs), or ACE inhibitors. Lifestyle modifications are highly recommended."
+            
+            elif "diabetes" in prompt_lower or "sugar" in prompt_lower or "sarkarai" in prompt_lower:
+                if is_tanglish:
+                    ai_response = "Sugar (Diabetes) control panna Metformin tablet dhan first-line treatment. Kandippa 3 masathukku oru thadava HbA1c test panni paakkanum. Inippu vagigalai thavirkkavum."
+                else:
+                    ai_response = "For the management of Type 2 Diabetes, Metformin is generally the first-line pharmacological treatment. Continual A1C monitoring every 3-6 months is advised."
+            
+            else:
+                if is_tanglish:
+                    ai_response = f"Neenga '{prompt}' pathi ketrukkinga. Idhu simulated database-la illai. Unmaiyana API irundhal, idhukkaana badhilai thedi eduthu solluven."
+                else:
+                    ai_response = f"I have scanned the simulated database for '{prompt}'. In a fully deployed LLM architecture via Gemini API, this response would generate dynamic peer-reviewed content."
+            
+            # Simulate streaming effect
             for chunk in ai_response.split(" "):
                 full_response += chunk + " "
                 time.sleep(0.05)
-                # Add a blinking cursor to simulate typing
                 message_placeholder.markdown(full_response + "▌")
             
             message_placeholder.markdown(full_response)
         
-        # Add assistant response to chat history
         st.session_state.messages.append({"role": "assistant", "content": full_response})
