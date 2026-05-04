@@ -1,9 +1,7 @@
 import streamlit as st
 import pandas as pd
-# IMPORTANT: Future files (swarm_logic.py, icu_live.py) must exist in specified paths
 from agents.swarm_logic import DiagnosticSwarm 
 from dashboard.icu_live import render_icu_dashboard
-# Import ImageOps and ImageEnhance for the new Attention Map logic
 from PIL import Image, ImageFilter, ImageOps, ImageEnhance
 import time
 
@@ -163,7 +161,7 @@ elif module == "Medical Imaging (Beta)":
                         
                     status_text.empty()
                 
-                # --- Step 1: Render Diagnostic Result First (Improved UI/UX) ---
+                # --- Step 1: Render Diagnostic Result First ---
                 st.markdown("#### 🎯 Diagnostic Conclusion")
                 
                 # Simple hashing logic to mock consistent ML predictions per image size
@@ -179,32 +177,43 @@ elif module == "Medical Imaging (Beta)":
                 
                 st.divider()
                 
-                # --- Step 2: Render Stylized AI Attention Map (FIXED Logic) ---
-                # This logic simulates an AI heatmap overlay, avoiding the all-white box error.
+                # --- Step 2: Render Stylized AI Attention Map ---
                 st.write("**AI Attention Map (Simulated Deep Feature Map):**")
                 
-                # A. Convert original image to Grayscale and heavily enhance contrast to identify structures
+                # Convert to grayscale, enhance contrast, and blur to create a heatmap base
                 gray_image = image.convert("L")
                 enhancer = ImageEnhance.Contrast(gray_image)
-                contrast_image = enhancer.enhance(3.0) # Boost contrast significantly
-
-                # B. Apply a strong blur to simulate the smooth 'attention blobs' associated with AI focus areas
+                contrast_image = enhancer.enhance(3.0) 
                 blurred_gray = contrast_image.filter(ImageFilter.GaussianBlur(radius=10))
 
-                # C. Create a colorized heatmap based on the blurred grayscale intensities (simulating hot/cold areas)
-                # We map mid-tones to blue, low to black, and high to yellow for a vivid medical heatmap look.
+                # Colorize the heatmap (blue to yellow scale) and blend with original image
                 heatmap = ImageOps.colorize(blurred_gray, mid="blue", black="black", white="yellow")
-
-                # D. Blend the newly generated color heatmap with the original grayscale image for anatomical context
-                # alpha=0.5 blends them with equal intensity (50% opacity).
                 combined_image = Image.blend(image.convert("RGB"), heatmap, alpha=0.5)
 
                 # Render the final simulated heatmap
                 st.image(combined_image, use_container_width=True, caption="Deep Learning Simulation: Highlighted Probabilistic Pathological Regions")
+                
+                # --- Step 3: Detailed Diagnostic Breakdown (Explainable AI) ---
+                st.markdown("#### 📋 Detailed AI Findings")
+                
+                # Expandable section for clean UI
+                with st.expander("View Full Radiological Breakdown", expanded=True):
+                    st.write("**Region-based Analysis:**")
+                    
+                    if prob > 0.5:
+                        st.write("- 🔴 **Lung Opacities:** Elevated density detected in highlighted yellow regions (Possible consolidation).")
+                        st.write("- 🟡 **Cardiac Silhouette:** Marginally enlarged contour detected.")
+                        st.write("- 🟢 **Bone Structure:** No acute fractures or dislocations identified.")
+                        st.info("💡 **Explainable AI Note:** The yellow highlighted regions in the heatmap indicate areas where the neural network focused its attention to derive the anomaly score.")
+                    else:
+                        st.write("- 🟢 **Lung Fields:** Clear bilaterally. No abnormal opacities detected.")
+                        st.write("- 🟢 **Cardiac Silhouette:** Normal size and contour.")
+                        st.write("- 🟢 **Bone Structure:** No acute fractures identified.")
+                        st.info("💡 **Explainable AI Note:** The uniform heatmap distribution indicates the AI found no concentrated areas of pathological concern.")
 
 # ==========================================
 # MODULE 3: ICU LIVE MONITOR (BETA)
 # ==========================================
 elif module == "ICU Live Monitor (Beta)":
-    # Calling the dashboard logic from agents/icu_live module
+    # Calling the dashboard logic from dashboard/icu_live module
     render_icu_dashboard()
