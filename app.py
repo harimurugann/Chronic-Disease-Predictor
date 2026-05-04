@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
+# IMPORTANT: Future files (swarm_logic.py, icu_live.py) must exist in specified paths
 from agents.swarm_logic import DiagnosticSwarm 
 from dashboard.icu_live import render_icu_dashboard
-from PIL import Image, ImageFilter
+# Import ImageOps and ImageEnhance for the new Attention Map logic
+from PIL import Image, ImageFilter, ImageOps, ImageEnhance
 import time
 
 # ==========================================
@@ -149,7 +151,7 @@ elif module == "Medical Imaging (Beta)":
                     
                     steps = [
                         "Enhancing image contrast...", 
-                        "Applying Contour mapping...", 
+                        "Applying Feature Mapping...", 
                         "Extracting deep visual features...", 
                         "Running classification layers..."
                     ]
@@ -164,7 +166,7 @@ elif module == "Medical Imaging (Beta)":
                 # --- Step 1: Render Diagnostic Result First (Improved UI/UX) ---
                 st.markdown("#### 🎯 Diagnostic Conclusion")
                 
-                # Simple hashing logic to mock consistent ML predictions per image
+                # Simple hashing logic to mock consistent ML predictions per image size
                 img_hash = sum(image.size) % 100
                 prob = img_hash / 100.0
                 
@@ -177,12 +179,28 @@ elif module == "Medical Imaging (Beta)":
                 
                 st.divider()
                 
-                # --- Step 2: Render Edge/Contour AI Attention Map ---
-                st.write("**AI Attention Map (Feature Extraction):**")
+                # --- Step 2: Render Stylized AI Attention Map (FIXED Logic) ---
+                # This logic simulates an AI heatmap overlay, avoiding the all-white box error.
+                st.write("**AI Attention Map (Simulated Deep Feature Map):**")
                 
-                # Applying CONTOUR filter for optimal visibility on X-Rays
-                edge_image = image.convert("L").filter(ImageFilter.CONTOUR)
-                st.image(edge_image, use_container_width=True, caption="Highlighting Structural Contours")
+                # A. Convert original image to Grayscale and heavily enhance contrast to identify structures
+                gray_image = image.convert("L")
+                enhancer = ImageEnhance.Contrast(gray_image)
+                contrast_image = enhancer.enhance(3.0) # Boost contrast significantly
+
+                # B. Apply a strong blur to simulate the smooth 'attention blobs' associated with AI focus areas
+                blurred_gray = contrast_image.filter(ImageFilter.GaussianBlur(radius=10))
+
+                # C. Create a colorized heatmap based on the blurred grayscale intensities (simulating hot/cold areas)
+                # We map mid-tones to blue, low to black, and high to yellow for a vivid medical heatmap look.
+                heatmap = ImageOps.colorize(blurred_gray, mid="blue", black="black", white="yellow")
+
+                # D. Blend the newly generated color heatmap with the original grayscale image for anatomical context
+                # alpha=0.5 blends them with equal intensity (50% opacity).
+                combined_image = Image.blend(image.convert("RGB"), heatmap, alpha=0.5)
+
+                # Render the final simulated heatmap
+                st.image(combined_image, use_container_width=True, caption="Deep Learning Simulation: Highlighted Probabilistic Pathological Regions")
 
 # ==========================================
 # MODULE 3: ICU LIVE MONITOR (BETA)
