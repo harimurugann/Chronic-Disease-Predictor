@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from agents.swarm_logic import DiagnosticSwarm 
 from dashboard.icu_live import render_icu_dashboard
 from PIL import Image, ImageFilter, ImageOps, ImageEnhance, ImageDraw, ImageFont
@@ -44,7 +45,8 @@ module = st.sidebar.radio("Select Module", [
     "Medical Imaging (Beta)", 
     "ICU Live Monitor (Beta)",
     "AI Clinical Scribe (NLP)",
-    "GenAI Clinical Assistant"
+    "GenAI Clinical Assistant",
+    "Population Health Analytics"
 ])
 
 # ==========================================
@@ -169,18 +171,14 @@ elif module == "Medical Imaging (Beta)":
                     st.write("**AI Attention Map (Simulated Deep Feature Map):**")
                     st.image(blended, use_container_width=True, caption="Grad-CAM Visualization (Normal Findings Simulated)")
 
-
-                # --- UPDATED LOGIC: Hyper-specific medical findings matching the arrow ---
                 st.markdown("#### 📋 Detailed AI Findings")
                 with st.expander("Expand Radiological Breakdown", expanded=True):
                     if prob > 0.5:
                         st.write("- 🔴 **Primary Finding:** Localized hyper-density (opacity) detected in the **Right Mid-Lung Zone**.")
-                        st.write("- 🩺 **Clinical Significance:** The pattern localized by the red pointer is highly indicative of focal consolidation (e.g., early-stage pneumonia) or a structural mass.")
-                        st.write("- 🎯 **Spatial Mapping:** Anomaly mapped to bounding box coordinates corresponding to the patient's right upper/middle lobe.")
-                        st.info("💡 **Explainable AI Note:** The simulated Grad-CAM heatmap shows concentrated high activation (yellow) in this region. The AI has drawn a red arrow pointing to this exact spatial coordinate to aid radiologist review.")
+                        st.write("- 🩺 **Clinical Significance:** Highly indicative of focal consolidation or a structural mass.")
+                        st.info("💡 **Explainable AI Note:** The simulated Grad-CAM heatmap shows concentrated high activation. The AI has drawn a red arrow pointing to this exact spatial coordinate.")
                     else:
                         st.write("- 🟢 **Lung Fields:** Clear bilaterally. No abnormal opacities detected.")
-                        st.info("💡 **Explainable AI Note:** Uniform heatmap distribution suggests normal anatomy based on current training data.")
 
 # ==========================================
 # MODULE 3: REAL-TIME ICU MONITORING
@@ -217,10 +215,8 @@ History of Hypertension and Type 2 Diabetes. Prescribed Aspirin 81mg daily."""
 
             st.write("**Symptoms Detected:**")
             st.markdown(" ".join([f'<span class="entity-symp">{s}</span>' for s in found_symptoms]), unsafe_allow_html=True)
-            
             st.write("**Clinical Diagnoses:**")
             st.markdown(" ".join([f'<span class="entity-diag">{d}</span>' for d in found_diagnoses]), unsafe_allow_html=True)
-            
             st.write("**Prescribed Medications:**")
             st.markdown(" ".join([f'<span class="entity-med">{m}</span>' for m in found_meds]), unsafe_allow_html=True)
             
@@ -233,18 +229,15 @@ History of Hypertension and Type 2 Diabetes. Prescribed Aspirin 81mg daily."""
                 })
 
 # ==========================================
-# MODULE 5: GEN-AI CLINICAL ASSISTANT (LLM/RAG)
+# MODULE 5: GEN-AI CLINICAL ASSISTANT
 # ==========================================
 elif module == "GenAI Clinical Assistant":
     st.markdown("### 💬 GenAI Clinical Assistant (Multilingual Support)")
-    st.write("Simulation of a Retrieval-Augmented Generation (RAG) agent querying medical guidelines with Language Detection.")
-    st.warning("⚠️ **Disclaimer:** Simulation for demonstration. Not for actual medical use.")
+    st.write("Simulation of a Retrieval-Augmented Generation (RAG) agent.")
     st.divider()
 
     if "messages" not in st.session_state:
-        st.session_state.messages = [
-            {"role": "assistant", "content": "Hello Doctor. I am your AI Clinical Assistant. You can ask me medical queries in English or Tanglish (e.g., 'Heart pain irukku enna pannalam?')."}
-        ]
+        st.session_state.messages = [{"role": "assistant", "content": "Hello Doctor. Ask me medical queries in English or Tanglish."}]
 
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
@@ -260,34 +253,15 @@ elif module == "GenAI Clinical Assistant":
             full_response = ""
             
             prompt_lower = prompt.lower()
-            tanglish_keywords = ["irukku", "enna", "pannalam", "kodu", "valikkudhu", "kolandhai", "marundhu", "vali", "patient kku"]
+            tanglish_keywords = ["irukku", "enna", "pannalam", "kodu", "valikkudhu", "kolandhai", "marundhu"]
             is_tanglish = any(kw in prompt_lower for kw in tanglish_keywords)
             
-            if "heart" in prompt_lower or "chest" in prompt_lower or "nenju" in prompt_lower:
-                if is_tanglish:
-                    ai_response = "Nenju vali (Heart pain) irundha idhu emergency! Udane Aspirin 300mg maathirayai mella sollanga (chewable). Koodave Sorbitrate 5mg naakku adiyil vekkalam. Udane kitta irukka hospital-kku kootitu ponga."
-                else:
-                    ai_response = "For acute cardiac chest pain, immediate administration of chewable Aspirin (300mg) and Sublingual Nitroglycerin is standard emergency protocol. Immediate ECG and cardiology consult required."
-            elif "fever" in prompt_lower or "kaachal" in prompt_lower or "kolandhai" in prompt_lower:
-                if is_tanglish:
-                    ai_response = "Kuzhandhaikku high fever irundha Paracetamol drops alladhu syrup (weight-kku yetra alavu) tharalam. Wet cloth vechu thodachu vidunga. Fever 2 naalku mela irundha udane pediatrician-a paarkavum."
-                else:
-                    ai_response = "For general symptomatic relief of fever, antipyretics like Acetaminophen or Ibuprofen are recommended. Ensure the patient stays hydrated. If symptoms persist for more than 48 hours, a diagnostic workup is advised."
-            elif "hypertension" in prompt_lower or "bp" in prompt_lower or "pressure" in prompt_lower:
-                if is_tanglish:
-                    ai_response = "High BP (Hypertension) irundha, mudhalil uppu (sodium) sapidradha kuraikkanum. Doctor parindhurai padi Amlodipine alladhu Telmisartan pola maathiraigal edukkalam. Diet matrum udarpyirchi romba mukkiyam."
-                else:
-                    ai_response = "Based on current clinical guidelines for Hypertension, first-line therapy typically involves Thiazide diuretics, Calcium channel blockers (CCBs), or ACE inhibitors. Lifestyle modifications are highly recommended."
-            elif "diabetes" in prompt_lower or "sugar" in prompt_lower or "sarkarai" in prompt_lower:
-                if is_tanglish:
-                    ai_response = "Sugar (Diabetes) control panna Metformin tablet dhan first-line treatment. Kandippa 3 masathukku oru thadava HbA1c test panni paakkanum. Inippu vagigalai thavirkkavum."
-                else:
-                    ai_response = "For the management of Type 2 Diabetes, Metformin is generally the first-line pharmacological treatment. Continual A1C monitoring every 3-6 months is advised."
+            if "heart" in prompt_lower or "chest" in prompt_lower:
+                ai_response = "Nenju vali irundha idhu emergency! Udane Aspirin 300mg mella sollanga." if is_tanglish else "Immediate administration of chewable Aspirin (300mg) is standard protocol."
+            elif "fever" in prompt_lower or "kaachal" in prompt_lower:
+                ai_response = "Kuzhandhaikku Paracetamol drops tharalam. Wet cloth vechu thodachu vidunga." if is_tanglish else "Antipyretics like Acetaminophen are recommended."
             else:
-                if is_tanglish:
-                    ai_response = f"Neenga '{prompt}' pathi ketrukkinga. Idhu simulated database-la illai. Unmaiyana API irundhal, idhukkaana badhilai thedi eduthu solluven."
-                else:
-                    ai_response = f"I have scanned the simulated database for '{prompt}'. In a fully deployed LLM architecture via Gemini API, this response would generate dynamic peer-reviewed content."
+                ai_response = f"Neenga '{prompt}' pathi ketrukkinga. Idhu simulated database-la illai." if is_tanglish else f"I scanned the simulated database for '{prompt}'."
             
             for chunk in ai_response.split(" "):
                 full_response += chunk + " "
@@ -295,5 +269,52 @@ elif module == "GenAI Clinical Assistant":
                 message_placeholder.markdown(full_response + "▌")
             
             message_placeholder.markdown(full_response)
-        
         st.session_state.messages.append({"role": "assistant", "content": full_response})
+
+# ==========================================
+# MODULE 6: POPULATION HEALTH ANALYTICS (BI)
+# ==========================================
+elif module == "Population Health Analytics":
+    st.markdown("### 📈 Population Health & BI Analytics")
+    st.write("Real-time Business Intelligence dashboard for resource management and disease forecasting.")
+    st.divider()
+
+    # KPI Metrics
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Admissions", "1,245", "+12% from last month")
+    col2.metric("Active ICU Patients", "34", "-2")
+    col3.metric("AI Flagged Anomalies", "18", "+4")
+    col4.metric("Avg. ER Wait Time", "14 mins", "-3 mins")
+
+    st.divider()
+
+    # BI Charts using native Streamlit functions (Error-free)
+    col_a, col_b = st.columns([2, 1], gap="large")
+
+    with col_a:
+        st.write("**📊 Disease Outbreak Trends (Last 30 Days)**")
+        dates = pd.date_range(end=pd.Timestamp.today(), periods=30)
+        trend_data = pd.DataFrame({
+            "Respiratory Issues": np.random.randint(10, 50, size=30),
+            "Cardiac Events": np.random.randint(5, 20, size=30),
+            "Viral Fevers": np.random.randint(2, 35, size=30)
+        }, index=dates)
+        st.line_chart(trend_data)
+
+    with col_b:
+        st.write("**👥 Patient Demographics**")
+        demo_data = pd.DataFrame({
+            "Age Group": ["0-18", "19-35", "36-50", "51-65", "65+"],
+            "Patients": [150, 320, 450, 600, 420]
+        }).set_index("Age Group")
+        st.bar_chart(demo_data)
+
+    st.divider()
+    
+    st.write("**📍 Geospatial Risk Mapping (Simulated Regional Outbreaks)**")
+    # Generates simulated outbreak coordinate data centered regionally
+    map_data = pd.DataFrame(
+        np.random.randn(80, 2) / [60, 60] + [11.65, 78.25], 
+        columns=['lat', 'lon']
+    )
+    st.map(map_data)
