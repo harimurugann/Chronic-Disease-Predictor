@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-# Importing logic from your internal repository structure
 from agents.swarm_logic import DiagnosticSwarm 
 from dashboard.icu_live import render_icu_dashboard
 from PIL import Image, ImageFilter, ImageOps, ImageEnhance
@@ -11,7 +10,6 @@ import time
 # ==========================================
 st.set_page_config(page_title="OmniHealth AI CDSS", page_icon="🌐", layout="wide")
 
-# Professional Enterprise CSS Styling for Medical UI
 st.markdown("""
 <style>
     .swarm-card {
@@ -32,7 +30,6 @@ st.markdown("""
 # ==========================================
 @st.cache_resource
 def load_ai_swarm():
-    """Loads the Multi-Agent Diagnostic Swarm models into memory cache"""
     return DiagnosticSwarm()
 
 swarm_engine = load_ai_swarm()
@@ -46,7 +43,8 @@ module = st.sidebar.radio("Select Module", [
     "Diagnostic Swarm AI", 
     "Medical Imaging (Beta)", 
     "ICU Live Monitor (Beta)",
-    "AI Clinical Scribe (NLP)"
+    "AI Clinical Scribe (NLP)",
+    "GenAI Clinical Assistant"
 ])
 
 # ==========================================
@@ -80,8 +78,7 @@ if module == "Diagnostic Swarm AI":
         if analyze_btn:
             patient_data = {
                 "Age": age, "BMI": bmi, "BloodPressure": bp, "Glucose": glucose,
-                "Smoking": smoking, "PhysicalActivity": activity, 
-                "Diet": diet, "Sleep": sleep, "StressLevel": stress
+                "Smoking": smoking, "PhysicalActivity": activity, "Diet": diet, "Sleep": sleep, "StressLevel": stress
             }
 
             with st.spinner("AI Agents are communicating..."):
@@ -175,8 +172,8 @@ elif module == "AI Clinical Scribe (NLP)":
     st.write("Extracting clinical entities using Named Entity Recognition (NER).")
     st.divider()
 
-    default_text = """Patient presenting with chest pain and shortness of breath. 
-History of Hypertension. Prescribed Aspirin 81mg daily."""
+    default_text = """Patient presenting with severe chest pain and shortness of breath. 
+History of Hypertension and Type 2 Diabetes. Prescribed Aspirin 81mg daily."""
 
     col1, col2 = st.columns([1, 1], gap="large")
     with col1:
@@ -190,9 +187,8 @@ History of Hypertension. Prescribed Aspirin 81mg daily."""
             with st.spinner("Tokenizing..."):
                 time.sleep(1.2)
             
-            # Simple keyword extraction logic for simulation
             found_symptoms = [s for s in ["chest pain", "shortness of breath"] if s in clinical_text.lower()]
-            found_diagnoses = [d for d in ["Hypertension"] if d in clinical_text]
+            found_diagnoses = [d for d in ["Hypertension", "Type 2 Diabetes"] if d in clinical_text]
             found_meds = [m for m in ["Aspirin 81mg"] if m in clinical_text]
 
             st.write("**Symptoms Detected:**")
@@ -205,16 +201,66 @@ History of Hypertension. Prescribed Aspirin 81mg daily."""
             st.markdown(" ".join([f'<span class="entity-med">{m}</span>' for m in found_meds]), unsafe_allow_html=True)
             
             st.divider()
-            
-            # --- HIDDEN JSON PAYLOAD (Logic Update) ---
             with st.expander("💾 View JSON Payload for EHR Backend (API Integration)", expanded=False):
                 st.write("This structured JSON is ready for secure database ingestion or API transmission.")
                 st.json({
                     "patient_id": "ANON-84729",
-                    "extracted_data": {
-                        "Symptoms": found_symptoms,
-                        "Diagnoses": found_diagnoses,
-                        "Medications": found_meds
-                    },
+                    "extracted_data": {"Symptoms": found_symptoms, "Diagnoses": found_diagnoses, "Medications": found_meds},
                     "nlp_confidence": 0.94
                 })
+
+# ==========================================
+# MODULE 5: GEN-AI CLINICAL ASSISTANT (LLM/RAG)
+# ==========================================
+elif module == "GenAI Clinical Assistant":
+    st.markdown("### 💬 GenAI Clinical Assistant")
+    st.write("Simulation of a Retrieval-Augmented Generation (RAG) agent querying medical guidelines.")
+    st.warning("⚠️ **Disclaimer:** This is an AI simulation for demonstration purposes. Not for actual medical use.")
+    st.divider()
+
+    # Initialize chat history in Streamlit session state
+    if "messages" not in st.session_state:
+        st.session_state.messages = [
+            {"role": "assistant", "content": "Hello Doctor. I am your AI Clinical Assistant. How can I help you query the medical guidelines today?"}
+        ]
+
+    # Display chat messages from history on app rerun
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
+
+    # Accept user input
+    if prompt := st.chat_input("Ask a clinical query (e.g., 'What is the treatment for Hypertension?')..."):
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        # Display user message in chat message container
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # Display assistant response in chat message container
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            full_response = ""
+            
+            # Simple keyword matching to simulate an LLM responding contextually
+            prompt_lower = prompt.lower()
+            if "hypertension" in prompt_lower or "bp" in prompt_lower:
+                ai_response = "Based on current clinical guidelines for **Hypertension**, first-line therapy typically involves Thiazide diuretics, Calcium channel blockers (CCBs), or ACE inhibitors/ARBs. Lifestyle modifications such as a low-sodium diet and exercise are also highly recommended. \n\n*Source Simulation: AHA/ACC Guidelines.*"
+            elif "diabetes" in prompt_lower or "sugar" in prompt_lower:
+                ai_response = "For the management of **Type 2 Diabetes**, Metformin is generally the first-line pharmacological treatment. Continual A1C monitoring every 3-6 months is advised alongside dietary interventions. \n\n*Source Simulation: ADA Standards of Medical Care.*"
+            elif "fever" in prompt_lower or "headache" in prompt_lower:
+                ai_response = "For general symptomatic relief of fever or mild headache, antipyretics and analgesics like Acetaminophen or Ibuprofen are recommended. Ensure the patient stays hydrated. If symptoms persist for more than 48 hours, a full diagnostic workup is advised."
+            else:
+                ai_response = f"I have scanned the simulated medical database for your query regarding '{prompt}'. In a fully deployed RAG architecture, this response would fetch specific peer-reviewed journals and clinical guidelines via vector embeddings."
+            
+            # Simulate streaming effect (typing letter by letter)
+            for chunk in ai_response.split(" "):
+                full_response += chunk + " "
+                time.sleep(0.05)
+                # Add a blinking cursor to simulate typing
+                message_placeholder.markdown(full_response + "▌")
+            
+            message_placeholder.markdown(full_response)
+        
+        # Add assistant response to chat history
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
