@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import pydeck as pdk
+import requests # --- NEW: Used to fetch live API data ---
 from agents.swarm_logic import DiagnosticSwarm 
 from dashboard.icu_live import render_icu_dashboard
 from PIL import Image, ImageFilter, ImageOps, ImageEnhance, ImageDraw, ImageFont
@@ -34,6 +36,24 @@ def load_ai_swarm():
     return DiagnosticSwarm()
 
 swarm_engine = load_ai_swarm()
+
+# --- NEW GEOCODING API FUNCTION ---
+@st.cache_data
+def get_coordinates(location_name):
+    """Dynamic Geocoding API to convert any Indian city/village name to Lat & Lon"""
+    try:
+        # Using OpenStreetMap's free Nominatim API
+        url = f"https://nominatim.openstreetmap.org/search?q={location_name}, India&format=json&limit=1"
+        headers = {'User-Agent': 'OmniHealth_CDSS_Portfolio'}
+        response = requests.get(url, headers=headers)
+        data = response.json()
+        
+        if data:
+            return float(data[0]['lat']), float(data[0]['lon'])
+        else:
+            return None, None
+    except Exception as e:
+        return None, None
 
 # ==========================================
 # SIDEBAR NAVIGATION
@@ -176,7 +196,6 @@ elif module == "Medical Imaging (Beta)":
                     if prob > 0.5:
                         st.write("- 🔴 **Primary Finding:** Localized hyper-density (opacity) detected in the **Right Mid-Lung Zone**.")
                         st.write("- 🩺 **Clinical Significance:** Highly indicative of focal consolidation or a structural mass.")
-                        st.info("💡 **Explainable AI Note:** The simulated Grad-CAM heatmap shows concentrated high activation. The AI has drawn a red arrow pointing to this exact spatial coordinate.")
                     else:
                         st.write("- 🟢 **Lung Fields:** Clear bilaterally. No abnormal opacities detected.")
 
@@ -279,17 +298,14 @@ elif module == "Population Health Analytics":
     st.write("Real-time Business Intelligence dashboard for resource management and disease forecasting.")
     st.divider()
 
-    # KPI Metrics
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total Admissions", "1,245", "+12% from last month")
     col2.metric("Active ICU Patients", "34", "-2")
     col3.metric("AI Flagged Anomalies", "18", "+4")
     col4.metric("Avg. ER Wait Time", "14 mins", "-3 mins")
-
     st.divider()
 
     col_a, col_b = st.columns([2, 1], gap="large")
-
     with col_a:
         st.write("**📊 Disease Outbreak Trends (Last 30 Days)**")
         dates = pd.date_range(end=pd.Timestamp.today(), periods=30)
@@ -310,31 +326,49 @@ elif module == "Population Health Analytics":
 
     st.divider()
     
-    # --- UPDATED LOGIC: INTERACTIVE GEOSPATIAL MAP ---
-    st.write("**📍 Geospatial Risk Mapping (Interactive Regional Outbreaks)**")
+    # --- DYNAMIC PAN-INDIA GEOCODING LOGIC ---
+    st.write("**📍 Geospatial Risk Mapping (Dynamic Pan-India 3D Fly-over)**")
     
-    # Dictionary of major cities and their Lat/Lon coordinates
-    regional_coords = {
-        "Salem / Vazhapadi": [11.6500, 78.2500],
-        "Chennai": [13.0827, 80.2707],
-        "Coimbatore": [11.0168, 76.9558],
-        "Madurai": [9.9252, 78.1198],
-        "Bengaluru": [12.9716, 77.5946],
-        "New Delhi": [28.6139, 77.2090]
-    }
+    # We replaced the Dropdown with a Text Input where the user can type ANY location in India!
+    search_location = st.text_input("🌍 Search ANY City, Town, or Village in India (e.g., Vazhapadi, Trichy, Pune):", "New Delhi")
 
-    # Dropdown for user to select the region
-    selected_region = st.selectbox("🌍 Select Region to Analyze Outbreak Hotspots:", list(regional_coords.keys()))
-    
-    # Fetch base coordinates based on selection
-    base_lat, base_lon = regional_coords[selected_region]
+    if search_location:
+        with st.spinner(f"Locating '{search_location}' via Geocoding API..."):
+            base_lat, base_lon = get_coordinates(search_location)
 
-    # Generate random simulated outbreak points scattered around the selected base location
-    # Dividing by [50, 50] creates a realistic spread radius across the city
-    map_data = pd.DataFrame(
-        np.random.randn(100, 2) / [50, 50] + [base_lat, base_lon], 
-        columns=['lat', 'lon']
-    )
-    
-    # Streamlit natively pans and zooms to the new coordinates automatically
-    st.map(map_data)
+        if base_lat and base_lon:
+            # Generate simulated outbreak points around the dynamically fetched coordinates
+            map_data = pd.DataFrame(
+                np.random.randn(150, 2) / [60, 60] + [base_lat, base_lon], 
+                columns=['lat', 'lon']
+            )
+            
+            # Setup 3D Camera view
+            view_state = pdk.ViewState(
+                latitude=base_lat,
+                longitude=base_lon,
+                zoom=11,
+                pitch=50,
+                transition_duration=2500, # Smooth flying animation
+                transition_easing="cubic-in-out"
+            )
+
+            # Setup the glowing red scatter plot points
+            layer = pdk.Layer(
+                "ScatterplotLayer",
+                data=map_data,
+                get_position="[lon, lat]",
+                get_color="[255, 75, 75, 200]",
+                get_radius=500,
+                pickable=True,
+            )
+
+            # Render the Map
+            st.pydeck_chart(pdk.Deck(
+                map_style="mapbox://styles/mapbox/dark-v10",
+                initial_view_state=view_state,
+                layers=[layer],
+                tooltip={"text": f"Simulated Outbreak near {search_location.title()}"}
+            ))
+        else:
+            st.error(f"⚠️ Could not find coordinates for '{search_location}'. Please check the spelling or try a nearby city.")
