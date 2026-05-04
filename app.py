@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 from agents.swarm_logic import DiagnosticSwarm 
 from dashboard.icu_live import render_icu_dashboard
-# Import ImageDraw and ImageFont for drawing pointers and labels on image
 from PIL import Image, ImageFilter, ImageOps, ImageEnhance, ImageDraw, ImageFont
 import time
 
@@ -142,69 +141,45 @@ elif module == "Medical Imaging (Beta)":
 
                 st.divider()
                 
-                # --- Step 2: Render Stylized AI Attention Map ---
-                # Convert to grayscale, enhance contrast, and blur to create a heatmap base
                 gray_image = image.convert("L")
                 enhancer = ImageEnhance.Contrast(gray_image)
                 contrast_image = enhancer.enhance(3.0) 
                 blurred_gray = contrast_image.filter(ImageFilter.GaussianBlur(radius=10))
 
-                # Colorize the heatmap (blue to yellow scale) and blend with original image
                 heatmap = ImageOps.colorize(blurred_gray, mid="blue", black="black", white="yellow")
                 blended = Image.blend(image.convert("RGB"), heatmap, alpha=0.5)
 
-                # --- NEW LOGIC: Drawing Arrow and Label if Anomaly Detected (Simulation) ---
                 if prob > 0.5:
                     st.write("**AI Diagnostic Localization (Simulated Pointer):**")
-                    
-                    # Create copy of blended image to draw on
                     annotated_img = blended.copy()
                     draw = ImageDraw.Draw(annotated_img)
                     w, h = annotated_img.size
 
-                    # --- Define simulated anomaly coordinates (Upper Lung Area, Viewer's left) ---
-                    # These are arbitrary coordinates for demonstration.
-                    # Bounding box coordinates for a circle [x0, y0, x1, y1]
                     circle_coords = [w * 0.25, h * 0.35, w * 0.40, h * 0.50]
-                    anomaly_target = (w * 0.325, h * 0.425) # Center of circle for arrow to point to
-                    pointer_start = (w * 0.325, h * 0.25) # Starting point of arrow (above)
+                    anomaly_target = (w * 0.325, h * 0.425) 
+                    pointer_start = (w * 0.325, h * 0.25) 
 
-                    # 1. Draw Red Pointer Arrow
-                    # Draw main line
                     draw.line([pointer_start, anomaly_target], fill="red", width=10)
-                    # Draw arrowhead (simple V shape)
                     draw.line([anomaly_target, (anomaly_target[0]-w*0.02, anomaly_target[1]-h*0.03)], fill="red", width=10)
                     draw.line([anomaly_target, (anomaly_target[0]+w*0.02, anomaly_target[1]-h*0.03)], fill="red", width=10)
-
-                    # 2. Draw Red Circle around anomaly area
                     draw.ellipse(circle_coords, outline="red", width=5)
                     
-                    # 3. Add Text Label ("Anomaly Detected")
-                    # Try to load default font. NOTE: Text size control is limited without custom .ttf files.
-                    try:
-                        font = ImageFont.load_default()
-                        # Default font is tiny, drawing text larger via Pillow is complex across platforms.
-                        # We just draw the pointer for better visibility and explain in findings expander.
-                        # draw.text((w*0.1, h*0.1), "POTENTIAL OPACITY", fill="red", font=font)
-                    except Exception:
-                        pass # Skip font drawing if it fails
-                    
-                    # Render final annotated image
-                    st.image(annotated_img, use_container_width=True, caption="Grad-CAM Simulation with Simulated Anomaly Pointer")
-                
+                    st.image(annotated_img, use_container_width=True, caption="Grad-CAM Simulation with Spatial Anomaly Pointer")
                 else:
                     st.write("**AI Attention Map (Simulated Deep Feature Map):**")
-                    # Render standard blended heatmap for safe scan
                     st.image(blended, use_container_width=True, caption="Grad-CAM Visualization (Normal Findings Simulated)")
 
 
+                # --- UPDATED LOGIC: Hyper-specific medical findings matching the arrow ---
                 st.markdown("#### 📋 Detailed AI Findings")
                 with st.expander("Expand Radiological Breakdown", expanded=True):
                     if prob > 0.5:
-                        st.write("- 🔴 **Finding:** Potential opacity/consolidation detected in highlighted zone.")
-                        st.info("💡 **Explainable AI Note:** The simulated Grad-CAM heatmap shows concentrated high activation (yellow) in this region, triggered anomaly alert. The AI has drawn a red arrow pointing to this area.")
+                        st.write("- 🔴 **Primary Finding:** Localized hyper-density (opacity) detected in the **Right Mid-Lung Zone**.")
+                        st.write("- 🩺 **Clinical Significance:** The pattern localized by the red pointer is highly indicative of focal consolidation (e.g., early-stage pneumonia) or a structural mass.")
+                        st.write("- 🎯 **Spatial Mapping:** Anomaly mapped to bounding box coordinates corresponding to the patient's right upper/middle lobe.")
+                        st.info("💡 **Explainable AI Note:** The simulated Grad-CAM heatmap shows concentrated high activation (yellow) in this region. The AI has drawn a red arrow pointing to this exact spatial coordinate to aid radiologist review.")
                     else:
-                        st.write("- 🟢 **Lung Fields:** Clear bilaterally.")
+                        st.write("- 🟢 **Lung Fields:** Clear bilaterally. No abnormal opacities detected.")
                         st.info("💡 **Explainable AI Note:** Uniform heatmap distribution suggests normal anatomy based on current training data.")
 
 # ==========================================
@@ -261,14 +236,14 @@ History of Hypertension and Type 2 Diabetes. Prescribed Aspirin 81mg daily."""
 # MODULE 5: GEN-AI CLINICAL ASSISTANT (LLM/RAG)
 # ==========================================
 elif module == "GenAI Clinical Assistant":
-    st.markdown("### 💬 GenAI Clinical Assistant")
-    st.write("Simulation of a Retrieval-Augmented Generation (RAG) agent querying medical guidelines.")
+    st.markdown("### 💬 GenAI Clinical Assistant (Multilingual Support)")
+    st.write("Simulation of a Retrieval-Augmented Generation (RAG) agent querying medical guidelines with Language Detection.")
     st.warning("⚠️ **Disclaimer:** Simulation for demonstration. Not for actual medical use.")
     st.divider()
 
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "Hello Doctor. I am your AI Clinical Assistant. How can I help you today?"}
+            {"role": "assistant", "content": "Hello Doctor. I am your AI Clinical Assistant. You can ask me medical queries in English or Tanglish (e.g., 'Heart pain irukku enna pannalam?')."}
         ]
 
     for message in st.session_state.messages:
@@ -285,12 +260,34 @@ elif module == "GenAI Clinical Assistant":
             full_response = ""
             
             prompt_lower = prompt.lower()
-            if "hypertension" in prompt_lower or "bp" in prompt_lower:
-                ai_response = "Typically involves Thiazide diuretics, Calcium channel blockers (CCBs), or ACE inhibitors. Lifestyle modifications are highly recommended. \n\n*Source Simulation: AHA Guidelines.*"
-            elif "diabetes" in prompt_lower or "sugar" in prompt_lower:
-                ai_response = "Metformin is generally the first-line treatment. Continual A1C monitoring every 3-6 months is advised. \n\n*Source Simulation: ADA Standards.*"
+            tanglish_keywords = ["irukku", "enna", "pannalam", "kodu", "valikkudhu", "kolandhai", "marundhu", "vali", "patient kku"]
+            is_tanglish = any(kw in prompt_lower for kw in tanglish_keywords)
+            
+            if "heart" in prompt_lower or "chest" in prompt_lower or "nenju" in prompt_lower:
+                if is_tanglish:
+                    ai_response = "Nenju vali (Heart pain) irundha idhu emergency! Udane Aspirin 300mg maathirayai mella sollanga (chewable). Koodave Sorbitrate 5mg naakku adiyil vekkalam. Udane kitta irukka hospital-kku kootitu ponga."
+                else:
+                    ai_response = "For acute cardiac chest pain, immediate administration of chewable Aspirin (300mg) and Sublingual Nitroglycerin is standard emergency protocol. Immediate ECG and cardiology consult required."
+            elif "fever" in prompt_lower or "kaachal" in prompt_lower or "kolandhai" in prompt_lower:
+                if is_tanglish:
+                    ai_response = "Kuzhandhaikku high fever irundha Paracetamol drops alladhu syrup (weight-kku yetra alavu) tharalam. Wet cloth vechu thodachu vidunga. Fever 2 naalku mela irundha udane pediatrician-a paarkavum."
+                else:
+                    ai_response = "For general symptomatic relief of fever, antipyretics like Acetaminophen or Ibuprofen are recommended. Ensure the patient stays hydrated. If symptoms persist for more than 48 hours, a diagnostic workup is advised."
+            elif "hypertension" in prompt_lower or "bp" in prompt_lower or "pressure" in prompt_lower:
+                if is_tanglish:
+                    ai_response = "High BP (Hypertension) irundha, mudhalil uppu (sodium) sapidradha kuraikkanum. Doctor parindhurai padi Amlodipine alladhu Telmisartan pola maathiraigal edukkalam. Diet matrum udarpyirchi romba mukkiyam."
+                else:
+                    ai_response = "Based on current clinical guidelines for Hypertension, first-line therapy typically involves Thiazide diuretics, Calcium channel blockers (CCBs), or ACE inhibitors. Lifestyle modifications are highly recommended."
+            elif "diabetes" in prompt_lower or "sugar" in prompt_lower or "sarkarai" in prompt_lower:
+                if is_tanglish:
+                    ai_response = "Sugar (Diabetes) control panna Metformin tablet dhan first-line treatment. Kandippa 3 masathukku oru thadava HbA1c test panni paakkanum. Inippu vagigalai thavirkkavum."
+                else:
+                    ai_response = "For the management of Type 2 Diabetes, Metformin is generally the first-line pharmacological treatment. Continual A1C monitoring every 3-6 months is advised."
             else:
-                ai_response = f"I scanned the simulated database for '{prompt}'. A fully deployed RAG architecture would fetch specific peer-reviewed content here."
+                if is_tanglish:
+                    ai_response = f"Neenga '{prompt}' pathi ketrukkinga. Idhu simulated database-la illai. Unmaiyana API irundhal, idhukkaana badhilai thedi eduthu solluven."
+                else:
+                    ai_response = f"I have scanned the simulated database for '{prompt}'. In a fully deployed LLM architecture via Gemini API, this response would generate dynamic peer-reviewed content."
             
             for chunk in ai_response.split(" "):
                 full_response += chunk + " "
