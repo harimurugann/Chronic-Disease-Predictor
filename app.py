@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
-# Ensure these modules exist in your GitHub repository paths
 from agents.swarm_logic import DiagnosticSwarm 
 from dashboard.icu_live import render_icu_dashboard
 from PIL import Image, ImageFilter, ImageOps, ImageEnhance
 import time
+import re
 
 # ==========================================
 # PAGE SETUP & UI CONFIGURATION
@@ -21,6 +21,9 @@ st.markdown("""
     }
     .alert-danger { background: #ff4b4b; color: white; padding: 15px; border-radius: 8px; font-weight: bold; }
     .alert-safe { background: #00cc96; color: white; padding: 15px; border-radius: 8px; font-weight: bold; }
+    .entity-symp { background-color: #ff4b4b; color: white; padding: 3px 8px; border-radius: 5px; font-weight: bold; margin: 2px;}
+    .entity-diag { background-color: #f5b041; color: white; padding: 3px 8px; border-radius: 5px; font-weight: bold; margin: 2px;}
+    .entity-med { background-color: #2ecc71; color: white; padding: 3px 8px; border-radius: 5px; font-weight: bold; margin: 2px;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -39,7 +42,13 @@ swarm_engine = load_ai_swarm()
 # ==========================================
 st.sidebar.title("🌐 OmniHealth AI")
 st.sidebar.caption("Enterprise Clinical Decision Support")
-module = st.sidebar.radio("Select Module", ["Diagnostic Swarm AI", "Medical Imaging (Beta)", "ICU Live Monitor (Beta)"])
+# Added the new NLP module to the sidebar
+module = st.sidebar.radio("Select Module", [
+    "Diagnostic Swarm AI", 
+    "Medical Imaging (Beta)", 
+    "ICU Live Monitor (Beta)",
+    "AI Clinical Scribe (NLP)"
+])
 
 # ==========================================
 # MODULE 1: MULTI-AGENT DIAGNOSTIC SWARM
@@ -53,7 +62,6 @@ if module == "Diagnostic Swarm AI":
 
     with col1:
         st.subheader("📋 Patient Vitals")
-        # Capturing raw patient data for analysis
         age = st.number_input("Age", 18, 100, 45)
         bmi = st.slider("BMI", 10.0, 50.0, 26.5)
         bp = st.slider("Blood Pressure (Systolic)", 80, 200, 135)
@@ -84,7 +92,6 @@ if module == "Diagnostic Swarm AI":
             st.write("### Global Health Consensus")
             overall = results["Overall_Consensus"]
             
-            # Displaying safety status based on aggregated risk scores
             if results["Critical_Alert"]:
                 st.markdown(f'<div class="alert-danger">⚠️ HIGH RISK CONCERN - Swarm Consensus: {overall*100:.1f}%</div>', unsafe_allow_html=True)
             else:
@@ -128,13 +135,11 @@ elif module == "Medical Imaging (Beta)":
             st.subheader("AI Analysis Panel")
             if st.button("🔍 Run Deep Vision Scan", type="primary", use_container_width=True):
                 with st.spinner("Executing Convolutional Neural Network layers..."):
-                    # Simulating real-world processing latency
                     p_bar = st.progress(0)
                     for i in range(4):
                         time.sleep(0.5)
                         p_bar.progress((i+1)*25)
                 
-                # --- Result Logic ---
                 st.markdown("#### 🎯 Diagnostic Conclusion")
                 img_hash = sum(image.size) % 100
                 prob = img_hash / 100.0
@@ -147,21 +152,16 @@ elif module == "Medical Imaging (Beta)":
                     st.write("No significant pathological markers found.")
 
                 st.divider()
-                
-                # --- Advanced Heatmap Generation (Explainable AI) ---
                 st.write("**AI Attention Map (Feature Extraction):**")
-                # Grayscale conversion and contrast enhancement for anatomical detail
                 gray_img = image.convert("L")
                 enhancer = ImageEnhance.Contrast(gray_img)
                 contrast_img = enhancer.enhance(3.0)
                 blurred = contrast_img.filter(ImageFilter.GaussianBlur(radius=10))
                 
-                # Colorizing to simulate Heatmap (Blue = Safe, Yellow = Focus Area)
                 heatmap = ImageOps.colorize(blurred, mid="blue", black="black", white="yellow")
                 blended = Image.blend(image.convert("RGB"), heatmap, alpha=0.5)
                 st.image(blended, use_container_width=True, caption="Grad-CAM Simulated Visualization")
 
-                # --- Detailed Radiological Findings ---
                 st.markdown("#### 📋 Detailed AI Findings")
                 with st.expander("Expand Radiological Breakdown", expanded=True):
                     if prob > 0.5:
@@ -177,5 +177,81 @@ elif module == "Medical Imaging (Beta)":
 # MODULE 3: REAL-TIME ICU MONITORING
 # ==========================================
 elif module == "ICU Live Monitor (Beta)":
-    # This module fetches telemetry from the dashboard/icu_live logic
     render_icu_dashboard()
+
+# ==========================================
+# MODULE 4: NLP CLINICAL SCRIBE
+# ==========================================
+elif module == "AI Clinical Scribe (NLP)":
+    st.markdown("### 📝 NLP Clinical Notes Analyzer")
+    st.write("Extract structured medical entities (NER) from unstructured doctor's notes using Natural Language Processing.")
+    st.divider()
+
+    # Pre-filled mock clinical note for demonstration
+    default_text = """Patient is a 45-year-old male presenting with severe chest pain, shortness of breath, and mild dizziness. 
+Patient has a history of Type 2 Diabetes and Hypertension. 
+Diagnosis: Acute Myocardial Infarction. 
+Plan: Prescribing Aspirin 81mg and Metoprolol 50mg daily. Recommend immediate cardiology consult."""
+
+    col1, col2 = st.columns([1, 1], gap="large")
+
+    with col1:
+        st.subheader("Raw Clinical Note")
+        clinical_text = st.text_area("Paste doctor's notes here:", value=default_text, height=250)
+        analyze_nlp_btn = st.button("🧠 Run NLP Extraction", type="primary", use_container_width=True)
+
+    with col2:
+        st.subheader("Structured AI Output")
+        
+        if analyze_nlp_btn and clinical_text:
+            with st.spinner("Tokenizing and performing Named Entity Recognition (NER)..."):
+                time.sleep(1.5) # Simulate NLP pipeline delay
+            
+            st.success("Entity Extraction Complete!")
+            
+            # Simulated NER Extraction Logic (Keyword matching for demo purposes)
+            symptoms = ["chest pain", "shortness of breath", "dizziness", "fever", "cough", "headache"]
+            diagnoses = ["Type 2 Diabetes", "Hypertension", "Acute Myocardial Infarction", "Pneumonia", "Asthma"]
+            medications = ["Aspirin 81mg", "Metoprolol 50mg", "Paracetamol", "Amoxicillin", "Ibuprofen"]
+
+            found_symptoms = [s for s in symptoms if s.lower() in clinical_text.lower()]
+            found_diagnoses = [d for d in diagnoses if d.lower() in clinical_text.lower()]
+            found_meds = [m for m in medications if m.lower() in clinical_text.lower()]
+
+            # Visualizing extracted entities with custom CSS badges
+            st.write("#### Named Entities Recognized (NER)")
+            
+            st.write("**Symptoms Detected:**")
+            if found_symptoms:
+                symp_html = " ".join([f'<span class="entity-symp">{s}</span>' for s in found_symptoms])
+                st.markdown(symp_html, unsafe_allow_html=True)
+            else:
+                st.write("None detected.")
+
+            st.write("**Clinical Diagnoses:**")
+            if found_diagnoses:
+                diag_html = " ".join([f'<span class="entity-diag">{d}</span>' for d in found_diagnoses])
+                st.markdown(diag_html, unsafe_allow_html=True)
+            else:
+                st.write("None detected.")
+
+            st.write("**Prescribed Medications:**")
+            if found_meds:
+                med_html = " ".join([f'<span class="entity-med">{m}</span>' for m in found_meds])
+                st.markdown(med_html, unsafe_allow_html=True)
+            else:
+                st.write("None detected.")
+                
+            st.divider()
+            
+            # Enterprise JSON Output Simulation
+            st.write("#### 💾 JSON Payload for EHR Systems")
+            st.json({
+                "patient_id": "ANON-84729",
+                "extracted_data": {
+                    "Symptoms": found_symptoms,
+                    "Diagnoses": found_diagnoses,
+                    "Medications": found_meds
+                },
+                "nlp_confidence_score": 0.94
+            })
