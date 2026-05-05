@@ -82,7 +82,6 @@ module = st.sidebar.radio("Select Module", [
     "Population Health Analytics"
 ])
 
-# [Modules 1-5 remain exactly the same. Only rendering the logic for spacing...]
 # ==========================================
 # MODULE 1: MULTI-AGENT DIAGNOSTIC SWARM
 # ==========================================
@@ -128,6 +127,9 @@ if module == "Diagnostic Swarm AI":
                 st.markdown('<div class="swarm-card">⚕️ Chronic Agent</div>', unsafe_allow_html=True)
                 st.progress(results["Chronic_Score"], text=f"Risk: {results['Chronic_Score']*100:.0f}%")
 
+# ==========================================
+# MODULE 2: COMPUTER VISION
+# ==========================================
 elif module == "Medical Imaging (Beta)":
     st.markdown("### 👁️ AI Medical Image Diagnostics")
     st.divider()
@@ -171,9 +173,15 @@ elif module == "Medical Imaging (Beta)":
                 else:
                     st.image(blended, use_container_width=True)
 
+# ==========================================
+# MODULE 3: ICU LIVE
+# ==========================================
 elif module == "ICU Live Monitor (Beta)":
     render_icu_dashboard()
 
+# ==========================================
+# MODULE 4: NLP SCRIBE
+# ==========================================
 elif module == "AI Clinical Scribe (NLP)":
     st.markdown("### 📝 NLP Clinical Notes Analyzer")
     st.divider()
@@ -196,6 +204,9 @@ elif module == "AI Clinical Scribe (NLP)":
             st.write("**Prescribed Medications:**")
             st.markdown(" ".join([f'<span class="entity-med">{m}</span>' for m in found_meds]), unsafe_allow_html=True)
 
+# ==========================================
+# MODULE 5: GEN-AI
+# ==========================================
 elif module == "GenAI Clinical Assistant":
     st.markdown("### 💬 GenAI Clinical Assistant")
     st.divider()
@@ -224,7 +235,7 @@ elif module == "GenAI Clinical Assistant":
         st.session_state.messages.append({"role": "assistant", "content": full_response})
 
 # ==========================================
-# MODULE 6: POPULATION HEALTH ANALYTICS (BI) - UPDATED
+# MODULE 6: POPULATION HEALTH ANALYTICS (BI)
 # ==========================================
 elif module == "Population Health Analytics":
     st.markdown("### 📈 Population Health & BI Analytics")
@@ -259,25 +270,23 @@ elif module == "Population Health Analytics":
 
     st.divider()
     
-    st.write("**📍 Advanced Geospatial Risk Mapping (Multi-Layer & Dynamic Style)**")
+    st.write("**📍 Advanced Geospatial Risk Mapping (Free Open-Source Tiles)**")
     
-    # --- NEW: UI Controls for Map Styling and Layers ---
+    # --- UPDATED: FREE MAPBOX ALTERNATIVES ---
     col_search, col_style, col_layer = st.columns([2, 1, 1])
     with col_search:
         search_location = st.text_input("🌍 Search ANY City/Town in India:", "New Delhi")
     with col_style:
-        # Options to change the background map style
-        style_choice = st.selectbox("🎨 Map Style", ["Dark Mode", "Satellite View", "Light Mode", "Street View"])
+        # Changed to Free CartoDB Styles (No API Key Required!)
+        style_choice = st.selectbox("🎨 Map Style", ["Dark Mode", "Light Mode", "Street View"])
     with col_layer:
-        # Options to change how the data is visualized
         layer_choice = st.selectbox("📊 Data Layer", ["3D Hexagon Matrix", "Heatmap Overlay", "Scatterplot Nodes"])
 
-    # Dictionary mapping user choices to Mapbox URLs
+    # Mapping to free CartoDB styles built into PyDeck
     style_dict = {
-        "Dark Mode": "mapbox://styles/mapbox/dark-v10",
-        "Satellite View": "mapbox://styles/mapbox/satellite-v9",
-        "Light Mode": "mapbox://styles/mapbox/light-v10",
-        "Street View": "mapbox://styles/mapbox/streets-v11"
+        "Dark Mode": "dark",      # CartoDB Dark Matter
+        "Light Mode": "light",    # CartoDB Positron
+        "Street View": "road"     # CartoDB Voyager
     }
 
     if search_location:
@@ -285,13 +294,11 @@ elif module == "Population Health Analytics":
             base_lat, base_lon = get_coordinates(search_location)
 
         if base_lat and base_lon:
-            # Generated 600 points for a denser, more realistic Heatmap/Hexagon effect
             map_data = pd.DataFrame(
                 np.random.randn(600, 2) / [50, 50] + [base_lat, base_lon], 
                 columns=['lat', 'lon']
             )
             
-            # Setup View State (Tilt the camera down if Heatmap is chosen for better view)
             view_state = pdk.ViewState(
                 latitude=base_lat,
                 longitude=base_lon,
@@ -301,7 +308,6 @@ elif module == "Population Health Analytics":
                 transition_easing="cubic-in-out"
             )
 
-            # --- DYNAMIC LAYER RENDERING LOGIC ---
             if layer_choice == "3D Hexagon Matrix":
                 layer = pdk.Layer(
                     "HexagonLayer",
@@ -322,7 +328,7 @@ elif module == "Population Health Analytics":
                     opacity=0.8,
                     get_weight=1
                 )
-            else: # Scatterplot Nodes
+            else:
                 layer = pdk.Layer(
                     "ScatterplotLayer",
                     data=map_data,
@@ -332,7 +338,7 @@ elif module == "Population Health Analytics":
                     pickable=True,
                 )
 
-            # Render the Map with dynamic styles and layers
+            # Map style is now using the free Carto strings ("dark", "light", "road")
             st.pydeck_chart(pdk.Deck(
                 map_style=style_dict[style_choice],
                 initial_view_state=view_state,
